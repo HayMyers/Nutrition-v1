@@ -809,7 +809,7 @@ async function doSearch(q,meal){
   const box=$('#af_results'); box.innerHTML='<p class="note">Searching…</p>';
   try{
     // Open Food Facts text search (Search-a-licious). bias to English; old /cgi/search.pl is deprecated.
-    const url=`https://search.openfoodfacts.org/search?q=${encodeURIComponent(q)}&langs=en&page_size=40&fields=code,product_name,product_name_en,brands,nutriments,countries_tags,lang`;
+    const url=`https://search.openfoodfacts.org/search?q=${encodeURIComponent(q)}&page_size=40&fields=code,product_name,product_name_en,brands,nutriments`;
     const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(),12000);
     const r=await fetch(url,{signal:ctrl.signal}); clearTimeout(to);
     if(!r.ok)throw new Error('http '+r.status);
@@ -861,7 +861,8 @@ function portionDialog(p,meal){
     $('#pd_c').textContent=round(per.carbs*k,1);$('#pd_f').textContent=round(per.fat*k,1);};
   $('#pd_g').oninput=calc; calc();
   $('#pd_add').onclick=()=>{const g=+$('#pd_g').value||0,k=g/100;
-    addFoodEntry($('#pd_meal').value,{name:pname,cal:round(per.cal*k),protein:round(per.protein*k,1),
+    addFoodEntry($('#pd_meal').value,{name:pname,base:{cal:per.cal,protein:per.protein,carbs:per.carbs,fat:per.fat},unit:'g',qty:g,
+      cal:round(per.cal*k),protein:round(per.protein*k,1),
       carbs:round(per.carbs*k,1),fat:round(per.fat*k,1),qtyLabel:g+' g'});
     closeSheet();renderNutri();toast('Added');};
 }
@@ -960,7 +961,7 @@ function panelManual(meal){
     const per={cal:+$('#mf_cal').value||0,protein:+$('#mf_p').value||0,carbs:+$('#mf_c').value||0,fat:+$('#mf_f').value||0};
     const n=Math.max(0,+$('#mf_servn').value||1), serving=$('#mf_serv').value.trim();
     saveMyFood({name,serving,...per});
-    addFoodEntry($('#mf_meal').value,{name,
+    addFoodEntry($('#mf_meal').value,{name,base:{cal:per.cal,protein:per.protein,carbs:per.carbs,fat:per.fat},unit:'serving',qty:n,serving,
       cal:round(per.cal*n),protein:round(per.protein*n,1),carbs:round(per.carbs*n,1),fat:round(per.fat*n,1),
       qtyLabel:(n===1?'1 serving':n+' servings')+(serving?' · '+serving:'')});
     closeSheet();renderNutri();toast('Added');};
@@ -974,6 +975,51 @@ function saveMyFood(f){S.myFoods=S.myFoods||[];
 /* ---- edit / delete an entry ---- */
 function editFood(meal,i){
   const f=S.food[nutriDate][meal][i]; if(!f)return;
+  if(f.base&&f.unit)quantityEditor(meal,i,f); else legacyEditor(meal,i,f);
+}
+/* edit name + change servings (or grams); macros auto-scale from the stored per-unit values */
+function quantityEditor(meal,i,f){
+  const isServ=f.unit==='serving';
+  openSheet('Edit food',`
+    <div class="field"><label>Food</label><input class="input" id="ef_name" value="${escapeHTML(f.name)}"></div>
+    ${isServ?`<div class="field"><label>Serving description (optional)</label><input class="input" id="ef_serv" value="${escapeHTML(f.serving||'')}"></div>`:''}
+    <div class="field"><label>${isServ?'Servings':'Amount (grams)'}</label>
+      ${isServ?`<div class="stepper"><button class="step" id="ef_minus">−</button>
+          <input class="input num" id="ef_qty" type="number" inputmode="decimal" value="${f.qty}">
+          <button class="step" id="ef_plus">+</button></div>`
+        :`<input class="input num" id="ef_qty" type="number" inputmode="decimal" value="${f.qty}">`}</div>
+    <div class="small muted" style="margin:2px 2px 7px">Total</div>
+    <div class="daystat" style="margin-bottom:14px">
+      <div class="s"><div class="v num" id="ef_tcal" style="color:var(--cal)">0</div><div class="l">kcal</div></div>
+      <div class="s"><div class="v num" id="ef_tp" style="color:var(--protein)">0</div><div class="l">P</div></div>
+      <div class="s"><div class="v num" id="ef_tc" style="color:var(--carbs)">0</div><div class="l">C</div></div>
+      <div class="s"><div class="v num" id="ef_tf" style="color:var(--fat)">0</div><div class="l">F</div></div>
+    </div>
+    <button class="btn btn-primary" id="ef_save">Save changes</button>
+    <button class="btn btn-ghost" id="ef_del" style="margin-top:10px;color:var(--bad)">Delete</button>`);
+  const factor=()=>{const q=Math.max(0,+$('#ef_qty').value||0);return isServ?q:q/100;};
+  const calc=()=>{const k=factor();
+    $('#ef_tcal').textContent=round(f.base.cal*k);
+    $('#ef_tp').textContent=round(f.base.protein*k,1);
+    $('#ef_tc').textContent=round(f.base.carbs*k,1);
+    $('#ef_tf').textContent=round(f.base.fat*k,1);};
+  $('#ef_qty').oninput=calc;
+  if(isServ){
+    $('#ef_minus').onclick=()=>{const e=$('#ef_qty');e.value=Math.max(0.5,round((+e.value||1)-1,2));calc();};
+    $('#ef_plus').onclick=()=>{const e=$('#ef_qty');e.value=round((+e.value||0)+1,2);calc();};
+  }
+  calc();
+  $('#ef_save').onclick=()=>{const q=Math.max(0,+$('#ef_qty').value||0),k=isServ?q:q/100;
+    f.name=$('#ef_name').value.trim()||f.name;
+    if(isServ)f.serving=($('#ef_serv').value||'').trim();
+    f.qty=q;
+    f.cal=round(f.base.cal*k);f.protein=round(f.base.protein*k,1);f.carbs=round(f.base.carbs*k,1);f.fat=round(f.base.fat*k,1);
+    f.qtyLabel=isServ?((q===1?'1 serving':q+' servings')+(f.serving?' · '+f.serving:'')):(q+' g');
+    save();closeSheet();renderNutri();toast('Updated');};
+  $('#ef_del').onclick=()=>{S.food[nutriDate][meal].splice(i,1);save();closeSheet();renderNutri();toast('Removed');};
+}
+/* fallback for entries logged before per-unit tracking: edit macros directly */
+function legacyEditor(meal,i,f){
   openSheet('Edit food',`
     <div class="field"><label>Food</label><input class="input" id="ef_name" value="${escapeHTML(f.name)}"></div>
     <div class="three">
