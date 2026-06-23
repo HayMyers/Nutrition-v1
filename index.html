@@ -797,28 +797,34 @@ function panelSearch(meal){
 async function doSearch(q,meal){
   const box=$('#af_results'); box.innerHTML='<p class="note">Searching…</p>';
   try{
-    const url=`${OFF}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=25&fields=product_name,brands,nutriments`;
+    // Open Food Facts text search (Search-a-licious). The old /cgi/search.pl endpoint is deprecated.
+    const url=`https://search.openfoodfacts.org/search?q=${encodeURIComponent(q)}&page_size=20&fields=code,product_name,product_name_en,brands,nutriments`;
     const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(),12000);
     const r=await fetch(url,{signal:ctrl.signal}); clearTimeout(to);
+    if(!r.ok)throw new Error('http '+r.status);
     const data=await r.json();
-    const prods=(data.products||[]).filter(p=>p.product_name&&p.nutriments&&p.nutriments['energy-kcal_100g']!=null);
-    if(!prods.length){box.innerHTML='<p class="note">No results. Try a simpler term, or add it manually.</p>';return;}
+    const hits=(data.hits||data.products||[]).filter(p=>productName(p)&&nutriPer100(p).cal>0);
+    if(!hits.length){box.innerHTML='<p class="note">No matches with nutrition data. Try a simpler term, scan the barcode, or add it manually.</p>';return;}
     window.__foodCache={};
-    box.innerHTML=prods.slice(0,20).map((p,i)=>{window.__foodCache[i]=p;
-      const kc=round(p.nutriments['energy-kcal_100g']);
-      return `<div class="result" data-i="${i}"><div class="finfo"><div class="rn">${escapeHTML(p.product_name)}</div>
-        <div class="rm">${p.brands?escapeHTML(p.brands.split(',')[0])+' · ':''}${kc} kcal / 100g</div></div><div class="link">Add</div></div>`;
+    box.innerHTML=hits.map((p,i)=>{window.__foodCache[i]=p;
+      const kc=round(nutriPer100(p).cal), br=p.brands?escapeHTML(String(p.brands).split(',')[0])+' · ':'';
+      return `<div class="result" data-i="${i}"><div class="finfo"><div class="rn">${escapeHTML(productName(p))}</div>
+        <div class="rm">${br}${kc} kcal / 100g</div></div><div class="link">Add</div></div>`;
     }).join('');
     $$('#af_results .result').forEach(el=>el.onclick=()=>portionDialog(window.__foodCache[+el.dataset.i],meal));
-  }catch(e){box.innerHTML='<p class="note">Couldn\'t reach the food database (offline or blocked here). On your hosted site this works — for now, use Manual entry.</p>';}
+  }catch(e){box.innerHTML='<p class="note">Couldn\'t reach the food search service right now. You can scan the barcode or add the food manually instead.</p>';}
 }
 
-function nutriPer100(p){const n=p.nutriments||{};return{
-  cal:+n['energy-kcal_100g']||0,protein:+n['proteins_100g']||0,carbs:+n['carbohydrates_100g']||0,fat:+n['fat_100g']||0};}
+function productName(p){return (p&&(p.product_name||p.product_name_en||p.generic_name))||'';}
+function nutriPer100(p){const n=(p&&p.nutriments)||{};
+  let cal=+n['energy-kcal_100g'];
+  if(!cal&&n['energy-kcal_value']!=null)cal=+n['energy-kcal_value'];
+  if(!cal&&n['energy_100g']!=null)cal=+n['energy_100g']/4.184;   // kJ → kcal fallback
+  return{cal:cal||0,protein:+n['proteins_100g']||0,carbs:+n['carbohydrates_100g']||0,fat:+n['fat_100g']||0};}
 function portionDialog(p,meal){
-  const per=nutriPer100(p);
-  openSheet(p.product_name?p.product_name.slice(0,42):'Add food',`
-    <p class="muted small" style="margin-top:-4px">${p.brands?escapeHTML(p.brands.split(',')[0]):''}</p>
+  const per=nutriPer100(p), pname=productName(p)||'Add food';
+  openSheet(pname.slice(0,42),`
+    <p class="muted small" style="margin-top:-4px">${p.brands?escapeHTML(String(p.brands).split(',')[0]):''}</p>
     <div class="field"><label>Amount (grams)</label><input class="input num" id="pd_g" type="number" inputmode="decimal" value="100"></div>
     <div class="daystat" style="margin-bottom:14px">
       <div class="s"><div class="v num" id="pd_cal" style="color:var(--cal)">0</div><div class="l">kcal</div></div>
@@ -833,7 +839,7 @@ function portionDialog(p,meal){
     $('#pd_c').textContent=round(per.carbs*k,1);$('#pd_f').textContent=round(per.fat*k,1);};
   $('#pd_g').oninput=calc; calc();
   $('#pd_add').onclick=()=>{const g=+$('#pd_g').value||0,k=g/100;
-    addFoodEntry($('#pd_meal').value,{name:p.product_name||'Food',cal:round(per.cal*k),protein:round(per.protein*k,1),
+    addFoodEntry($('#pd_meal').value,{name:pname,cal:round(per.cal*k),protein:round(per.protein*k,1),
       carbs:round(per.carbs*k,1),fat:round(per.fat*k,1),qtyLabel:g+' g'});
     closeSheet();renderNutri();toast('Added');};
 }
