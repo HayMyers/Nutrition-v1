@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0A0C0F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nutrition v1">
+<title>Nutrition v1</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   NUTRITION v1 — DESIGN SYSTEM  (Section 1 / 5)
+   Dark, minimal, ring-led. Per-macro color identity.
+   ============================================================ */
+:root{
+  /* surfaces */
+  --bg:#0A0C0F; --surface:#14171D; --surface-2:#1C2027; --surface-3:#242932;
+  --border:#262B34; --border-soft:#1F242C;
+  /* text */
+  --text:#F3F5F9; --dim:#9AA1AD; --faint:#5C636E;
+  /* macro identity */
+  --cal:#FFB020; --protein:#FF6B6B; --carbs:#4ECDC4; --fat:#B794F6;
+  --streak:#FF7A45; --good:#4ECDC4; --bad:#FF6B6B; --track:#23272F;
+  /* shape + type */
+  --r:16px; --r-sm:12px;
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+  --display:'Space Grotesk',system-ui,-apple-system,sans-serif;
+  --body:'Inter',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--body);
+  font-size:16px;line-height:1.45;overscroll-behavior-y:none;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{max-width:520px;margin:0 auto;min-height:100vh;position:relative}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;font-size:16px}
+input,select{font-family:inherit;font-size:16px}
+h1,h2,h3{font-family:var(--display);margin:0;font-weight:600;letter-spacing:-0.01em}
+.num{font-family:var(--display);font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.hidden{display:none!important}
+.muted{color:var(--dim)} .faint{color:var(--faint)} .small{font-size:13px} .center{text-align:center}
+
+/* ---------- shell + screens ---------- */
+#app{padding-bottom:calc(74px + var(--sab))}
+.screen{display:none} .screen.active{display:block}
+.tab{display:none;animation:fade .26s ease} .tab.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.topbar{position:sticky;top:0;z-index:30;background:linear-gradient(180deg,var(--bg) 72%,transparent);
+  padding:calc(var(--sat) + 14px) 18px 10px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.topbar .hello{font-size:13px;color:var(--dim);font-weight:500}
+.topbar h2{font-size:22px;margin-top:2px}
+.topbar .right{display:flex;align-items:center;gap:10px;padding-top:4px}
+.gear{width:38px;height:38px;border-radius:50%;background:var(--surface);display:grid;place-items:center;border:1px solid var(--border-soft)}
+.streakchip{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border-soft);border-radius:999px;padding:7px 12px}
+.streakchip .seg{display:flex;align-items:center;gap:4px;font-family:var(--display);font-weight:600;font-size:14px}
+.streakchip .seg.fire{color:var(--streak)} .streakchip .seg.wk{color:var(--carbs)}
+.streakchip .div{width:1px;height:14px;background:var(--border)}
+
+.wrap{padding:4px 18px 24px}
+.card{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--r);padding:18px}
+.card + .card{margin-top:14px}
+.row{display:flex;align-items:center}.between{justify-content:space-between}.gap{gap:12px}
+.section-title{display:flex;align-items:center;justify-content:space-between;margin:22px 2px 12px}
+.section-title h3{font-size:16px}
+
+/* ---------- RINGS (signature element) ---------- */
+.ring-wrap{position:relative;display:grid;place-items:center}
+.ring-wrap .ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;line-height:1.04}
+.ring svg{display:block;transform:rotate(-90deg)}
+.ring .prog{transition:stroke-dashoffset .9s cubic-bezier(.22,1,.36,1)}
+.ring-center .big{font-family:var(--display);font-weight:700;font-size:38px;letter-spacing:-0.02em}
+.ring-center .lbl{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-top:3px}
+.ring-center .sub{font-size:12px;color:var(--faint);margin-top:2px}
+.hero-ring{display:flex;flex-direction:column;align-items:center;padding:6px 0 2px}
+.macro-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+.macro{display:flex;flex-direction:column;align-items:center}
+.macro .mval{font-family:var(--display);font-weight:600;font-size:14px}
+.macro .mlbl{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--dim);font-weight:600;margin-top:6px}
+.macro .msub{font-size:11px;color:var(--faint);margin-top:1px}
+
+/* ---------- buttons + inputs ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;font-weight:600;font-size:15px;padding:13px 16px;transition:.15s;width:100%}
+.btn-primary{background:var(--text);color:#0A0C0F}
+.btn-primary:active{transform:scale(.985);background:#dfe3ea}
+.btn-ghost{background:var(--surface-2);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:active{background:var(--surface-3)}
+.btn-sm{padding:9px 13px;font-size:14px;width:auto;border-radius:10px}
+.btn-row{display:flex;gap:10px;margin-top:10px}
+.icon-btn{width:34px;height:34px;border-radius:9px;background:var(--surface-2);display:grid;place-items:center;border:1px solid var(--border)}
+.link{color:var(--cal);font-weight:600;background:none}
+.mini{font-size:13px;font-weight:600;color:var(--dim);background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:7px 11px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:13px;color:var(--dim);margin-bottom:6px;font-weight:500}
+.input,select.input{width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:13px 14px;color:var(--text);outline:none;transition:.15s}
+.input:focus{border-color:var(--cal)}
+.input::placeholder{color:var(--faint)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.note{font-size:12px;color:var(--faint);line-height:1.5;margin-top:10px}
+hr.sep{border:none;border-top:1px solid var(--border-soft);margin:18px 0}
+
+/* ---------- charts ---------- */
+.chart-card svg{width:100%;height:auto;display:block}
+
+/* ---------- bottom nav ---------- */
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;z-index:40;
+  background:rgba(13,15,20,.86);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-top:1px solid var(--border-soft);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 6px calc(8px + var(--sab))}
+.nav button{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--faint);font-size:10.5px;font-weight:600;padding:4px 0;letter-spacing:.02em}
+.nav button.on{color:var(--text)} .nav button.on svg{color:var(--cal)}
+.nav svg{width:23px;height:23px}
+
+/* ---------- bottom sheet / modal ---------- */
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;display:none;animation:fade .2s}
+.sheet-bg.show{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;z-index:61;background:var(--surface);
+  border-radius:22px 22px 0 0;border:1px solid var(--border);border-bottom:none;transform:translateY(100%);
+  transition:transform .28s cubic-bezier(.22,1,.36,1);max-height:92vh;display:flex;flex-direction:column}
+.sheet.show{transform:translateY(0)}
+.grip{width:36px;height:4px;background:var(--border);border-radius:3px;margin:8px auto 0}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px}
+.sheet-head h3{font-size:18px}
+.sheet-body{overflow-y:auto;padding:4px 18px calc(20px + var(--sab));-webkit-overflow-scrolling:touch}
+
+/* ---------- toast ---------- */
+.toast{position:fixed;bottom:calc(90px + var(--sab));left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--surface-3);border:1px solid var(--border);color:var(--text);padding:11px 18px;border-radius:12px;
+  font-size:14px;font-weight:500;z-index:80;opacity:0;transition:.25s;pointer-events:none;max-width:90%;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.pr{border-color:var(--cal);color:var(--cal)}
+
+/* ---------- rest timer ---------- */
+.rest{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + var(--sab));z-index:70;background:var(--surface-3);
+  border:1px solid var(--border);border-radius:16px;padding:14px 18px;display:none;align-items:center;gap:14px;
+  box-shadow:0 8px 30px rgba(0,0,0,.45);width:calc(100% - 36px);max-width:484px}
+.rest.show{display:flex}
+.rest .t{font-family:var(--display);font-weight:700;font-size:28px;min-width:74px;font-variant-numeric:tabular-nums}
+.rest .lbl{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em}
+.rest .x{margin-left:auto;color:var(--dim)}
+
+/* ---------- auth + onboarding (Section 2) ---------- */
+.auth-wrap{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:calc(var(--sat) + 30px) 26px calc(40px + var(--sab))}
+.onb-wrap{min-height:100vh;display:flex;flex-direction:column;justify-content:flex-start;padding:calc(var(--sat) + 34px) 26px calc(40px + var(--sab))}
+.brand{display:flex;flex-direction:column;align-items:center;margin-bottom:32px}
+.brand svg{margin-bottom:14px}
+.brand h1{font-size:30px;letter-spacing:-0.02em}
+.brand p{color:var(--dim);font-size:14px;margin-top:6px}
+.err{color:var(--bad);font-size:13px;margin:-4px 0 10px;min-height:1px}
+.step-dots{display:flex;gap:6px;justify-content:center;margin-bottom:24px}
+.step-dots i{width:7px;height:7px;border-radius:50%;background:var(--border);transition:.3s}
+.step-dots i.on{background:var(--cal);width:20px;border-radius:4px}
+.seg-control{display:grid;gap:8px;grid-auto-flow:column;grid-auto-columns:1fr}
+.seg-opt{border:1px solid var(--border);background:var(--surface-2);border-radius:11px;padding:12px 8px;text-align:center;font-weight:600;font-size:14px;color:var(--dim);transition:.12s}
+.seg-opt.sel{border-color:var(--cal);color:var(--text);background:rgba(255,176,32,.08)}
+.seg-opt .e{font-size:18px;display:block;margin-bottom:3px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--border);background:var(--surface-2);border-radius:999px;padding:9px 15px;font-weight:600;font-size:14px;color:var(--dim);transition:.12s}
+.chip.sel{border-color:var(--cal);color:var(--text);background:rgba(255,176,32,.08)}
+.targets-preview{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:8px 0 4px}
+.tp{background:var(--surface-2);border-radius:13px;padding:15px;text-align:center}
+.tp .v{font-family:var(--display);font-weight:700;font-size:24px}
+.tp .l{font-size:12px;color:var(--dim);margin-top:2px}
+
+/* ---------- nutrition (Section 3) ---------- */
+.datebar{display:flex;align-items:center;justify-content:space-between;margin:2px 2px 14px}
+.datebar .d{font-family:var(--display);font-weight:600;font-size:16px}
+.daystat{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.daystat .s{background:var(--surface-2);border-radius:10px;padding:9px 6px;text-align:center}
+.daystat .s .v{font-family:var(--display);font-weight:600;font-size:15px}
+.daystat .s .l{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);margin-top:1px}
+.barline{height:4px;border-radius:3px;background:var(--track);margin-top:7px;overflow:hidden}
+.barline i{display:block;height:100%;border-radius:3px;transition:width .5s ease}
+.meal{margin-top:8px}
+.meal-head{display:flex;align-items:center;justify-content:space-between;padding:8px 2px 2px}
+.meal-head .mn{font-weight:600;font-size:15px}
+.meal-head .mc{font-size:13px;color:var(--dim)}
+.finfo{min-width:0;flex:1}
+.food{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);
+  border:1px solid var(--border-soft);border-radius:11px;padding:11px 13px;margin-top:7px}
+.food .fn,.result .rn{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.food .fm,.result .rm{font-size:12px;color:var(--faint);margin-top:2px}
+.food .fcal{font-family:var(--display);font-weight:600;font-size:14px;white-space:nowrap}
+.addfood{width:100%;border:1px dashed var(--border);background:transparent;border-radius:11px;padding:11px;
+  color:var(--dim);font-weight:600;font-size:14px;margin-top:7px}
+.addfood:active{background:var(--surface-2)}
+.tabs{display:flex;background:var(--surface-2);border-radius:11px;padding:4px;gap:4px;margin-bottom:14px}
+.tabs button{flex:1;padding:9px;border-radius:8px;font-weight:600;font-size:14px;color:var(--dim)}
+.tabs button.on{background:var(--surface-3);color:var(--text)}
+.result{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--border-soft)}
+.result:last-child{border-bottom:none}
+#reader{width:100%;border-radius:12px;overflow:hidden;background:#000;min-height:230px}
+#reader video{border-radius:12px;width:100%!important}
+
+/* ---------- workout (Section 4) ---------- */
+.ex{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--r-sm);margin-top:10px;overflow:hidden}
+.ex-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:13px 14px}
+.ex-head .en{font-weight:600;font-size:15px}
+.ex-head .er{font-size:12px;color:var(--faint);margin-top:2px}
+.pr-tag{display:inline-block;font-size:10px;font-weight:700;color:#0A0C0F;background:var(--cal);padding:2px 7px;border-radius:999px;margin-left:7px;vertical-align:middle}
+.sets{padding:0 14px 6px}
+.sethdr{display:grid;grid-template-columns:24px 1fr 1fr 42px;gap:8px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);margin:8px 0 2px;padding:0 2px}
+.sethdr span{text-align:center}
+.setrow{display:grid;grid-template-columns:24px 1fr 1fr 42px;gap:8px;align-items:center;margin-top:8px}
+.setrow .si{font-family:var(--display);font-weight:600;color:var(--faint);font-size:13px;text-align:center}
+.setrow input{background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:9px;text-align:center;color:var(--text);outline:none;font-family:var(--display);font-weight:600}
+.setrow input:focus{border-color:var(--cal)}
+.setrow.pr input{border-color:var(--cal)}
+.setrow .chk{width:38px;height:38px;border-radius:9px;border:1px solid var(--border);background:var(--surface-2);display:grid;place-items:center;color:var(--faint);font-weight:700}
+.setrow .chk.on{background:var(--carbs);border-color:var(--carbs);color:#06231f}
+.ex-actions{display:flex;gap:8px;padding:6px 14px 13px}
+.cardio-item{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--border-soft);border-radius:11px;padding:11px 13px;margin-top:8px}
+.cardio-item .fn{font-size:14px;font-weight:500}
+.cardio-item .fm{font-size:12px;color:var(--faint);margin-top:2px}
+
+/* ---------- home today-workout + progress + settings (Section 5) ---------- */
+.tw-head{display:flex;align-items:center;justify-content:space-between}
+.tw-tag{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:4px 9px;border-radius:999px;white-space:nowrap}
+.tw-tag.plan{background:rgba(255,176,32,.12);color:var(--cal)}
+.tw-tag.done{background:rgba(78,205,196,.13);color:var(--carbs)}
+.tw-tag.rest{background:var(--surface-2);color:var(--dim)}
+.tw-list{margin:12px 0 0;padding:0;list-style:none}
+.tw-list li{font-size:14px;color:var(--dim);padding:4px 0;display:flex;justify-content:space-between;gap:10px}
+.tw-list li b{color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat2 .s{background:var(--surface-2);border-radius:13px;padding:15px}
+.stat2 .s .v{font-family:var(--display);font-weight:700;font-size:26px}
+.stat2 .s .l{font-size:12px;color:var(--dim);margin-top:4px;line-height:1.35}
+.pr-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 2px;border-bottom:1px solid var(--border-soft)}
+.pr-item:last-child{border-bottom:none}
+.pr-item .pn{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr-item .pv{font-family:var(--display);font-weight:600;font-size:14px;color:var(--cal);white-space:nowrap}
+.setrowline{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border-soft);font-size:14px;color:var(--dim)}
+.setrowline:last-of-type{border-bottom:none}
+.setrowline b{color:var(--text);font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- ============ AUTH (shell — built in Section 2) ============ -->
+<div id="auth" class="screen"></div>
+
+<!-- ============ ONBOARDING (shell — built in Section 2) ============ -->
+<div id="onb" class="screen"></div>
+
+<!-- ============ MAIN APP SHELL ============ -->
+<div id="app" class="screen active">
+
+  <section id="home" class="tab active">
+    <div class="topbar">
+      <div><div class="hello" id="home_hello">Foundation preview</div><h2 id="home_date">Nutrition v1</h2></div>
+      <div class="right">
+        <button class="streakchip" id="streakBtn">
+          <span class="seg fire">🔥 <span id="st_food">5</span></span>
+          <span class="div"></span>
+          <span class="seg wk">▣ <span id="st_wk">3</span>w</span>
+        </button>
+        <button class="gear" id="gearBtn" aria-label="Settings">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="wrap" id="home_wrap"></div>
+  </section>
+
+  <section id="nutri" class="tab"><div class="topbar"><div><div class="hello" id="nutri_hello">Today's intake</div><h2>Nutrition</h2></div></div><div class="wrap" id="nutri_wrap"></div></section>
+  <section id="work" class="tab"><div class="topbar"><div><div class="hello" id="work_hello">Let's move</div><h2>Workout</h2></div></div><div class="wrap" id="work_wrap"></div></section>
+  <section id="prog" class="tab"><div class="topbar"><div><div class="hello" id="prog_hello">Your trends</div><h2>Progress</h2></div></div><div class="wrap" id="prog_wrap"></div></section>
+  <section id="settings" class="tab"><div class="topbar"><div><div class="hello">Account &amp; goals</div><h2>Settings</h2></div><div class="right"><button class="icon-btn" id="settingsBack">✕</button></div></div><div class="wrap" id="settings_wrap"></div></section>
+
+  <nav class="nav">
+    <button data-tab="home" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/></svg>Home</button>
+    <button data-tab="nutri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a3 3 0 0 1 0 6h-1"/><path d="M2 8h16v5a6 6 0 0 1-6 6H8a6 6 0 0 1-6-6V8z"/><path d="M6 1v3M10 1v3M14 1v3"/></svg>Nutrition</button>
+    <button data-tab="work"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 6.5 17.5 17.5M4 9 2.5 7.5a1.5 1.5 0 0 1 0-2.1l.9-.9a1.5 1.5 0 0 1 2.1 0L7 6M17 18l1.5 1.5a1.5 1.5 0 0 0 2.1 0l.9-.9a1.5 1.5 0 0 0 0-2.1L20 15"/></svg>Workout</button>
+    <button data-tab="prog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 2 4-5"/></svg>Progress</button>
+  </nav>
+</div>
+
+<!-- shared overlays -->
+<div class="toast" id="toast"></div>
+<div class="rest" id="rest">
+  <div><div class="t" id="rest_t">2:00</div><div class="lbl">Rest</div></div>
+  <button class="mini" data-rest="-15">−15s</button>
+  <button class="mini" data-rest="15">+15s</button>
+  <button class="x" id="rest_x"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+</div>
+<div class="sheet-bg" id="sheetBg"></div>
+<div class="sheet" id="sheet"><div class="grip"></div>
+  <div class="sheet-head"><h3 id="sheet_title">Sheet</h3><button class="icon-btn" id="sheet_close">✕</button></div>
+  <div class="sheet-body" id="sheet_body"></div>
+</div>
+
+<script>
+/* ============================================================
+   NUTRITION v1 — SHARED PLUMBING  (Section 1 / 5)
+   Reusable pieces every later section builds on.
+   ============================================================ */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const LB_KG=0.45359237, IN_CM=2.54;
+const round=(n,d=0)=>{const f=10**d;return Math.round((+n||0)*f)/f;};
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const escapeHTML=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- dates ---------- */
+function fmtISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function parseISO(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+const todayISO=()=>fmtISO(new Date());
+function addDays(iso,n){const d=parseISO(iso);d.setDate(d.getDate()+n);return fmtISO(d);}
+function prettyDate(iso){const t=todayISO();
+  if(iso===t)return 'Today';
+  if(iso===addDays(t,-1))return 'Yesterday';
+  if(iso===addDays(t,1))return 'Tomorrow';
+  return parseISO(iso).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});}
+function isoWeekKey(d){
+  const dt=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=(dt.getUTCDay()+6)%7; dt.setUTCDate(dt.getUTCDate()-day+3);
+  const first=new Date(Date.UTC(dt.getUTCFullYear(),0,4));
+  const week=1+Math.round(((dt-first)/86400000-3+((first.getUTCDay()+6)%7))/7);
+  return dt.getUTCFullYear()+'-W'+String(week).padStart(2,'0');}
+function prevWeek(wk){const[y,w]=wk.split('-W').map(Number);
+  const d=new Date(Date.UTC(y,0,4)); d.setUTCDate(d.getUTCDate()+(w-1)*7-7); return isoWeekKey(d);}
+
+/* ---------- toast ---------- */
+let _toastT;
+function toast(msg,pr=false){const t=$('#toast');t.textContent=msg;t.classList.toggle('pr',pr);
+  t.classList.add('show');clearTimeout(_toastT);_toastT=setTimeout(()=>t.classList.remove('show'),pr?2600:1900);}
+
+/* ---------- bottom sheet ---------- */
+function openSheet(title,html){$('#sheet_title').textContent=title;$('#sheet_body').innerHTML=html;
+  $('#sheetBg').classList.add('show');$('#sheet').classList.add('show');}
+function closeSheet(){$('#sheet').classList.remove('show');$('#sheetBg').classList.remove('show');}
+$('#sheet_close').onclick=closeSheet;
+$('#sheetBg').onclick=closeSheet;
+
+/* ---------- RINGS (signature component) ---------- */
+function ring(pct,color,size,stroke){
+  const r=(size-stroke)/2, c=2*Math.PI*r, off=c*(1-clamp(pct,0,1));
+  return `<div class="ring"><svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--track)" stroke-width="${stroke}"/>
+    <circle class="prog" cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"
+      stroke-linecap="round" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${c.toFixed(2)}" data-final="${off.toFixed(2)}"/>
+  </svg></div>`;
+}
+function ringBlock(pct,color,size,stroke,centerHTML){
+  return `<div class="ring-wrap" style="width:${size}px;height:${size}px">${ring(pct,color,size,stroke)}
+    <div class="ring-center">${centerHTML||''}</div></div>`;
+}
+/* animate rings from empty to their target after they're in the DOM */
+function paintRings(root=document){
+  requestAnimationFrame(()=>{$$('.prog',root).forEach(p=>{p.style.strokeDashoffset=p.getAttribute('data-final');});});
+}
+
+/* ---------- CHARTS (lightweight inline SVG, no deps) ---------- */
+function barChart(data,labels,target,color){
+  const W=320,H=150,pad=18,bw=(W-pad*2)/data.length;
+  const max=Math.max(target*1.1,...data,1), y=v=>H-pad-(v/max)*(H-pad*2);
+  const bars=data.map((v,i)=>{const x=pad+i*bw+bw*0.18,w=bw*0.64,h=Math.max(0,(H-pad)-y(v));
+    return `<rect x="${x.toFixed(1)}" y="${y(v).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${v>0?color:'var(--track)'}" opacity="${v>0?1:.55}"/>`;}).join('');
+  const ty=y(target);
+  const lbls=labels.map((d,i)=>i%2===0?`<text x="${(pad+i*bw+bw/2).toFixed(1)}" y="${H-4}" text-anchor="middle" font-size="8" fill="var(--faint)">${parseISO(d).getDate()}</text>`:'').join('');
+  return `<svg viewBox="0 0 ${W} ${H}">
+    <line x1="${pad}" y1="${ty.toFixed(1)}" x2="${W-pad}" y2="${ty.toFixed(1)}" stroke="${color}" stroke-width="1" stroke-dasharray="4 4" opacity=".7"/>
+    ${bars}${lbls}</svg>`;
+}
+function lineChart(data,labels){
+  const W=320,H=150,pad=22;
+  const min=Math.min(...data),max=Math.max(...data),span=(max-min)||1;
+  const x=i=>pad+i*((W-pad*2)/Math.max(1,data.length-1));
+  const y=v=>H-pad-((v-min)/span)*(H-pad*2);
+  const pts=data.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const dots=data.map((v,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.6" fill="var(--carbs)"/>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}">
+    <polyline points="${pts}" fill="none" stroke="var(--carbs)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}
+    <text x="${pad}" y="12" font-size="9" fill="var(--faint)">${max}</text>
+    <text x="${pad}" y="${H-2}" font-size="9" fill="var(--faint)">${min}</text>
+  </svg>`;
+}
+
+/* ============================================================
+   STORAGE ENGINE  (per-user, on-device localStorage)
+   Auth + state load/save used by Sections 2–5.
+   ============================================================ */
+const USERS_KEY='nv1.users', SESSION_KEY='nv1.session';
+function getUsers(){try{return JSON.parse(localStorage.getItem(USERS_KEY))||{};}catch(e){return{};}}
+function setUsers(u){localStorage.setItem(USERS_KEY,JSON.stringify(u));}
+function getSessionUser(){return localStorage.getItem(SESSION_KEY)||null;}
+function setSessionUser(u){localStorage.setItem(SESSION_KEY,u);}
+function clearSession(){localStorage.removeItem(SESSION_KEY);}
+function randSalt(){return [...crypto.getRandomValues(new Uint8Array(8))].map(b=>b.toString(16).padStart(2,'0')).join('');}
+async function hashPw(pw,salt){
+  if(window.crypto&&crypto.subtle){
+    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(salt+'::'+pw));
+    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  let h=5381;const s=salt+pw;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))>>>0;return 'f'+h;
+}
+const stateKey=u=>'nv1.data.'+u;
+function defaultState(){return{profile:null,food:{},workout:{routine:null,log:{}},weights:[],prs:{}};}
+function loadState(u){try{return JSON.parse(localStorage.getItem(stateKey(u)))||defaultState();}catch(e){return defaultState();}}
+let USER=null, S=null;
+function save(){if(USER&&S)localStorage.setItem(stateKey(USER),JSON.stringify(S));}
+
+/* ============================================================
+   ROUTER / NAV SHELL
+   ============================================================ */
+function show(id){$$('.screen').forEach(s=>s.classList.toggle('active',s.id===id));window.scrollTo(0,0);}
+let curTab='home';
+function go(tab){
+  curTab=tab;
+  $$('#app .tab').forEach(t=>t.classList.toggle('active',t.id===tab));
+  $$('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  window.scrollTo(0,0);
+  if(tab==='home')renderHome();
+  else if(tab==='nutri')renderNutri();
+  else if(tab==='work')renderWork();
+  else if(tab==='prog')renderProg();
+  else if(tab==='settings')renderSettings();
+  else placeholder(tab);
+}
+$$('.nav button').forEach(b=>b.onclick=()=>go(b.dataset.tab));
+$('#gearBtn').onclick=()=>toast('Settings — built in Section 5');
+$('#settingsBack').onclick=()=>go('home');
+$('#streakBtn').onclick=()=>openSheet('Your streaks',
+  `<p class="muted">The dual streak chip (🔥 nutrition days · ▣ workout weeks) becomes live in Section 5. This sheet, toast, and ring system are the reusable parts being proven now.</p>
+   <button class="btn btn-primary" style="margin-top:14px" onclick="closeSheet()">Got it</button>`);
+
+const TAB_NAMES={nutri:'Nutrition · Section 3',work:'Workout · Section 4',prog:'Progress · Section 5',settings:'Settings · Section 5'};
+function placeholder(tab){
+  $('#'+tab+'_wrap').innerHTML=`<div class="card center" style="padding:34px 18px">
+    <div style="font-size:30px;margin-bottom:10px">🚧</div>
+    <h3 style="margin-bottom:6px">${TAB_NAMES[tab]||tab}</h3>
+    <p class="muted small">Shell is in place. This screen gets built in its section, then everything merges in the final step.</p></div>`;
+}
+
+/* ============================================================
+   SECTION 2 — ACCOUNTS, ONBOARDING & MACRO CALCULATOR
+   ============================================================ */
+
+/* on-brand inline logo (concentric macro rings + N) — no external file */
+function brandMark(size){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" fill="none">
+    <circle cx="50" cy="50" r="44" stroke="var(--track)" stroke-width="7"/>
+    <circle cx="50" cy="50" r="44" stroke="var(--cal)" stroke-width="7" stroke-linecap="round" stroke-dasharray="276" stroke-dashoffset="62" transform="rotate(-90 50 50)"/>
+    <circle cx="50" cy="50" r="32" stroke="var(--track)" stroke-width="7"/>
+    <circle cx="50" cy="50" r="32" stroke="var(--protein)" stroke-width="7" stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="72" transform="rotate(-90 50 50)"/>
+    <circle cx="50" cy="50" r="20" stroke="var(--track)" stroke-width="7"/>
+    <circle cx="50" cy="50" r="20" stroke="var(--carbs)" stroke-width="7" stroke-linecap="round" stroke-dasharray="126" stroke-dashoffset="40" transform="rotate(-90 50 50)"/>
+    <text x="50" y="51" text-anchor="middle" dominant-baseline="central" font-family="'Space Grotesk',sans-serif" font-weight="700" font-size="24" fill="var(--text)">N</text>
+  </svg>`;
+}
+
+/* ---- evidence-based split metadata (exercise library added in Section 4) ---- */
+const SPLITS={
+  fb2:{label:'Full Body ×2',days:['fbA','fbB']},
+  fb3:{label:'Full Body ×3',days:['fbA','fbB','fbC']},
+  ul4:{label:'Upper / Lower ×4',days:['upA','loA','upB','loB']},
+  ppl5:{label:'PPL + Upper / Lower',days:['push','pull','legs','upA','loA']},
+  ppl6:{label:'Push / Pull / Legs ×2',days:['push','pull','legs','push','pull','legs']},
+};
+function recommendSplit(freq){
+  if(freq<=2)return 'fb2'; if(freq===3)return 'fb3'; if(freq===4)return 'ul4';
+  if(freq===5)return 'ppl5'; return 'ppl6';
+}
+
+/* ---- Mifflin–St Jeor → TDEE → macros ---- */
+function computeTargets(p){
+  const kg=p.weightLb*LB_KG, cm=p.heightIn*IN_CM;
+  const bmr=10*kg + 6.25*cm - 5*p.age + (p.sex==='male'?5:-161);
+  const actMap={2:1.375,3:1.45,4:1.55,5:1.65,6:1.725};
+  const tdee=bmr*(actMap[p.freq]||1.45);
+  let cal = p.goal==='lose' ? tdee-500 : p.goal==='gain' ? tdee+350 : tdee;
+  cal=Math.max(cal, p.sex==='male'?1500:1200, bmr*1.05);
+  const protein=round(p.weightLb*(p.goal==='lose'?1.1:1.0));   // g/lb
+  const fat=round(p.weightLb*0.35);
+  const carbs=round(Math.max(0,(cal-(protein*4+fat*9))/4));
+  return {cal:round(cal),protein,carbs,fat,tdee:round(tdee),bmr:round(bmr)};
+}
+
+/* ============================================================
+   AUTH  (local username/password — hashed on device)
+   ============================================================ */
+let authMode='login';
+function renderAuth(){
+  authMode='login';
+  $('#auth').innerHTML=`
+    <div class="auth-wrap">
+      <div class="brand">${brandMark(80)}<h1>Nutrition v1</h1><p>Train. Eat. Track. Repeat.</p></div>
+      <div class="field"><label>Username</label>
+        <input class="input" id="au_user" autocomplete="username" autocapitalize="none" autocorrect="off" placeholder="your name"></div>
+      <div class="field"><label>Password</label>
+        <input class="input" id="au_pass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+      <div class="err" id="au_err"></div>
+      <button class="btn btn-primary" id="au_go">Log in</button>
+      <p class="center muted small" style="margin-top:16px"><span id="au_swtxt">New here?</span>
+        <button class="link" id="au_sw">Create an account</button></p>
+      <p class="note center" style="margin-top:18px">Your account and all your data stay private on this device.</p>
+    </div>`;
+  refreshAuthMode();
+  $('#au_sw').onclick=()=>{authMode=authMode==='login'?'signup':'login';refreshAuthMode();};
+  const submit=async()=>{
+    const user=$('#au_user').value.trim().toLowerCase(), pass=$('#au_pass').value, err=$('#au_err');
+    err.textContent='';
+    if(user.length<2){err.textContent='Username must be at least 2 characters.';return;}
+    if(pass.length<4){err.textContent='Password must be at least 4 characters.';return;}
+    const users=getUsers();
+    if(authMode==='signup'){
+      if(users[user]){err.textContent='That username is already taken on this device.';return;}
+      const salt=randSalt();const hash=await hashPw(pass,salt);
+      users[user]={salt,hash};setUsers(users);setSessionUser(user);startSession(user);
+    }else{
+      const u=users[user];
+      if(!u){err.textContent='No account with that username on this device.';return;}
+      const hash=await hashPw(pass,u.salt);
+      if(hash!==u.hash){err.textContent='Incorrect password.';return;}
+      setSessionUser(user);startSession(user);
+    }
+  };
+  $('#au_go').onclick=submit;
+  $('#au_pass').onkeydown=e=>{if(e.key==='Enter')submit();};
+}
+function refreshAuthMode(){
+  $('#au_go').textContent = authMode==='login'?'Log in':'Create account';
+  $('#au_swtxt').textContent = authMode==='login'?'New here?':'Already have an account?';
+  $('#au_sw').textContent = authMode==='login'?'Create an account':'Log in instead';
+  $('#au_pass').setAttribute('autocomplete', authMode==='login'?'current-password':'new-password');
+  $('#au_err').textContent='';
+}
+function startSession(user){
+  USER=user; S=loadState(user);
+  if(!S.profile){ openOnboarding(); }
+  else { show('app'); go('home'); }
+}
+
+/* ============================================================
+   ONBOARDING  (3 steps → targets + recommended split)
+   ============================================================ */
+let onb=null;
+function openOnboarding(prefill){
+  if(prefill){
+    onb={sex:prefill.sex,age:prefill.age,ft:Math.floor(prefill.heightIn/12),inch:prefill.heightIn%12,
+      weight:prefill.weightLb,goal:prefill.goal,freq:prefill.freq};
+  }else{
+    onb={sex:'male',age:'',ft:'',inch:'',weight:'',goal:'gain',freq:4};
+  }
+  show('onb'); onbStep(0);
+}
+function onbStep(step){
+  const dots=[0,1,2].map(i=>`<i class="${i<=step?'on':''}"></i>`).join('');
+  let body='';
+  if(step===0){
+    body=`
+      <h1 style="font-size:25px;margin-bottom:6px">A few details</h1>
+      <p class="muted" style="margin-bottom:22px">So your targets fit you, not an average.</p>
+      <div class="field"><label>Sex (for metabolic calculation)</label>
+        <div class="seg-control" id="o_sex">
+          <div class="seg-opt ${onb.sex==='male'?'sel':''}" data-v="male">Male</div>
+          <div class="seg-opt ${onb.sex==='female'?'sel':''}" data-v="female">Female</div>
+        </div></div>
+      <div class="field"><label>Age</label>
+        <input class="input num" id="o_age" type="number" inputmode="numeric" placeholder="e.g. 27" value="${onb.age}"></div>
+      <div class="field"><label>Height</label>
+        <div class="two">
+          <input class="input num" id="o_ft" type="number" inputmode="numeric" placeholder="ft" value="${onb.ft}">
+          <input class="input num" id="o_in" type="number" inputmode="numeric" placeholder="in" value="${onb.inch}">
+        </div></div>
+      <div class="field"><label>Current weight (lb)</label>
+        <input class="input num" id="o_wt" type="number" inputmode="decimal" placeholder="e.g. 175" value="${onb.weight}"></div>
+      <div class="err" id="o_err"></div>
+      <button class="btn btn-primary" id="o_next">Continue</button>`;
+  } else if(step===1){
+    const goals=[['lose','📉','Lose weight'],['maintain','⚖️','Maintain'],['gain','📈','Gain weight']];
+    body=`
+      <h1 style="font-size:25px;margin-bottom:6px">Your goal</h1>
+      <p class="muted" style="margin-bottom:22px">This sets your calorie strategy and training split.</p>
+      <div class="field"><label>Primary goal</label>
+        <div class="seg-control" id="o_goal">
+          ${goals.map(g=>`<div class="seg-opt ${onb.goal===g[0]?'sel':''}" data-v="${g[0]}"><span class="e">${g[1]}</span>${g[2]}</div>`).join('')}
+        </div></div>
+      <div class="field"><label>Training days per week</label>
+        <div class="chips" id="o_freq">
+          ${[2,3,4,5,6].map(n=>`<div class="chip ${onb.freq===n?'sel':''}" data-v="${n}">${n} days</div>`).join('')}
+        </div></div>
+      <div class="card" style="padding:14px 16px">
+        <div class="small muted">Suggested split</div>
+        <div class="num" id="o_split" style="font-weight:600;font-size:16px;margin-top:3px">${SPLITS[recommendSplit(onb.freq)].label}</div>
+      </div>
+      <div class="btn-row"><button class="btn btn-ghost" id="o_back">Back</button>
+        <button class="btn btn-primary" id="o_next">See my plan</button></div>`;
+  } else {
+    const p={sex:onb.sex,age:onb.age,heightIn:onb.ft*12+(onb.inch||0),weightLb:onb.weight,goal:onb.goal,freq:onb.freq};
+    const t=computeTargets(p);
+    body=`
+      <h1 style="font-size:25px;margin-bottom:6px">Your daily targets</h1>
+      <p class="muted" style="margin-bottom:18px">Calculated from your stats. Adjustable anytime in Settings.</p>
+      <div class="targets-preview">
+        <div class="tp"><div class="v" style="color:var(--cal)">${t.cal}</div><div class="l">Calories</div></div>
+        <div class="tp"><div class="v" style="color:var(--protein)">${t.protein}g</div><div class="l">Protein</div></div>
+        <div class="tp"><div class="v" style="color:var(--carbs)">${t.carbs}g</div><div class="l">Carbs</div></div>
+        <div class="tp"><div class="v" style="color:var(--fat)">${t.fat}g</div><div class="l">Fat</div></div>
+      </div>
+      <p class="note">Maintenance ≈ <b>${t.tdee} kcal</b>. Protein set to ${onb.goal==='lose'?'1.1':'1.0'} g/lb to ${onb.goal==='lose'?'protect muscle in a deficit':'support muscle growth'} (Mifflin–St Jeor + activity from training frequency).</p>
+      <hr class="sep">
+      <div class="small muted">Your starting program</div>
+      <div class="num" style="font-weight:600;font-size:17px;margin-top:3px">${SPLITS[recommendSplit(onb.freq)].label}</div>
+      <p class="note">~10–20 hard sets per muscle/week, each muscle ~2×, 5–30 reps near failure. Fully editable later.</p>
+      <div class="btn-row" style="margin-top:18px"><button class="btn btn-ghost" id="o_back">Back</button>
+        <button class="btn btn-primary" id="o_done">Start tracking</button></div>`;
+  }
+  $('#onb').innerHTML=`<div class="onb-wrap"><div class="step-dots">${dots}</div><div id="onb_body">${body}</div></div>`;
+
+  if(step===0){
+    $$('#o_sex .seg-opt').forEach(o=>o.onclick=()=>{onb.sex=o.dataset.v;
+      $$('#o_sex .seg-opt').forEach(x=>x.classList.toggle('sel',x===o));});
+    $('#o_next').onclick=()=>{
+      onb.age=+$('#o_age').value; onb.ft=+$('#o_ft').value; onb.inch=+$('#o_in').value||0; onb.weight=+$('#o_wt').value;
+      const e=$('#o_err');
+      if(!onb.age||onb.age<13||onb.age>90){e.textContent='Enter a valid age (13–90).';return;}
+      if(!onb.ft||onb.ft<3||onb.ft>8){e.textContent='Enter a valid height.';return;}
+      if(!onb.weight||onb.weight<60||onb.weight>700){e.textContent='Enter a valid weight in pounds.';return;}
+      onbStep(1);
+    };
+  } else if(step===1){
+    $$('#o_goal .seg-opt').forEach(o=>o.onclick=()=>{onb.goal=o.dataset.v;
+      $$('#o_goal .seg-opt').forEach(x=>x.classList.toggle('sel',x===o));});
+    $$('#o_freq .chip').forEach(c=>c.onclick=()=>{onb.freq=+c.dataset.v;
+      $$('#o_freq .chip').forEach(x=>x.classList.toggle('sel',x===c));
+      $('#o_split').textContent=SPLITS[recommendSplit(onb.freq)].label;});
+    $('#o_back').onclick=()=>onbStep(0);
+    $('#o_next').onclick=()=>onbStep(2);
+  } else {
+    $('#o_back').onclick=()=>onbStep(1);
+    $('#o_done').onclick=()=>{
+      const p={sex:onb.sex,age:onb.age,heightIn:onb.ft*12+(onb.inch||0),weightLb:onb.weight,goal:onb.goal,freq:onb.freq};
+      S.profile={...p,targets:computeTargets(p),splitKey:recommendSplit(onb.freq),units:'imperial',createdAt:todayISO()};
+      if(!S.weights||!S.weights.length)S.weights=[{date:todayISO(),lb:onb.weight}];
+      save(); show('app'); go('home'); toast('Welcome to Nutrition v1');
+    };
+  }
+}
+
+/* ============================================================
+   HOME DASHBOARD  (Section 5)
+   ============================================================ */
+function renderHome(){
+  const p=S.profile, t=p.targets, tot=dayTotals(todayISO());
+  const rem=t.cal-tot.cal;
+  $('#home_hello').textContent='Hi, '+USER.charAt(0).toUpperCase()+USER.slice(1);
+  $('#home_date').textContent=new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
+  updateStreaksUI();
+
+  const macro=(lbl,val,tgt,color)=>`<div class="macro">
+    ${ringBlock(val/tgt,color,64,7,`<span class="mval" style="color:${color}">${val}</span>`)}
+    <div class="mlbl">${lbl}</div><div class="msub">/ ${tgt}g</div></div>`;
+
+  const rt=S.workout.routine||(S.workout.routine=buildRoutine(p.splitKey||recommendSplit(p.freq)));
+  const log=S.workout.log[todayISO()];
+  let twHTML;
+  if(log&&log.rest){
+    twHTML=`<div class="tw-head"><h3>Today's workout</h3><span class="tw-tag rest">Rest day</span></div>
+      <p class="muted small" style="margin-top:10px">Recovery is when muscle grows. Enjoy it.</p>
+      <div class="btn-row"><button class="btn btn-ghost btn-sm" id="undoRestHome">Undo rest day</button></div>`;
+  }else{
+    const day=log?{name:log.dayName,ex:log.exercises}:rt.days[rt.dayCursor];
+    const done=log&&log.completed;
+    const list=(day.ex||[]).slice(0,5).map(e=>{
+      const ns=Array.isArray(e.sets)?e.sets.length:e.sets;
+      return `<li><b>${escapeHTML(e.name)}</b><span>${ns}${e.rep?' × '+e.rep:''}</span></li>`;}).join('');
+    const more=(day.ex||[]).length>5?`<li class="faint">+${day.ex.length-5} more</li>`:'';
+    twHTML=`<div class="tw-head"><h3>${escapeHTML(day.name)}</h3><span class="tw-tag ${done?'done':'plan'}">${done?'Completed':'Planned'}</span></div>
+      <ul class="tw-list">${list}${more}</ul>
+      <div class="btn-row">
+        <button class="btn btn-primary btn-sm" id="goWork">${done?'View workout':'Start workout'}</button>
+        ${done?'':'<button class="btn btn-ghost btn-sm" id="restDayHome">Rest day</button>'}
+      </div>`;
+  }
+
+  $('#home_wrap').innerHTML=`
+    <div class="card">
+      <div class="hero-ring">
+        ${ringBlock(tot.cal/t.cal,'var(--cal)',186,16,
+          `<div class="big" style="color:${rem<0?'var(--bad)':'var(--text)'}">${Math.abs(rem)}</div>
+           <div class="lbl">${rem<0?'over':'kcal left'}</div><div class="sub">${tot.cal} / ${t.cal}</div>`)}
+      </div>
+      <div class="macro-row">
+        ${macro('Protein',tot.protein,t.protein,'var(--protein)')}
+        ${macro('Carbs',tot.carbs,t.carbs,'var(--carbs)')}
+        ${macro('Fat',tot.fat,t.fat,'var(--fat)')}
+      </div>
+      <div class="btn-row"><button class="btn btn-ghost" id="quickFood">+ Log food</button></div>
+    </div>
+    <div class="card">${twHTML}</div>
+    <div class="btn-row"><button class="btn btn-ghost" id="goProg">📊 Weekly progress</button></div>`;
+
+  $('#quickFood').onclick=()=>go('nutri');
+  $('#goProg').onclick=()=>go('prog');
+  const gw=$('#goWork'); if(gw)gw.onclick=()=>go('work');
+  const rd=$('#restDayHome'); if(rd)rd.onclick=()=>{markRest(true);renderHome();};
+  const ur=$('#undoRestHome'); if(ur)ur.onclick=()=>{markRest(false);renderHome();};
+  paintRings($('#home_wrap'));
+}
+
+/* ---------- (rest timer + workout engine in Section 4 below) ---------- */
+
+/* ============================================================
+   SECTION 3 — NUTRITION TRACKING
+   ============================================================ */
+const MEALS=[['breakfast','Breakfast'],['lunch','Lunch'],['dinner','Dinner'],['snacks','Snacks']];
+const OFF='https://world.openfoodfacts.org';
+let nutriDate=todayISO();
+let scanner=null;
+
+function dayTotals(iso){
+  const t={cal:0,protein:0,carbs:0,fat:0};
+  const m=S.food[iso];
+  if(m)for(const[k] of MEALS)(m[k]||[]).forEach(f=>{t.cal+=f.cal;t.protein+=f.protein;t.carbs+=f.carbs;t.fat+=f.fat;});
+  for(const k in t)t[k]=round(t[k]);
+  return t;
+}
+
+function renderNutri(){
+  const t=S.profile.targets, tot=dayTotals(nutriDate);
+  const bar=(v,tg,c)=>`<div class="barline"><i style="width:${clamp(v/tg*100,0,100)}%;background:${c}"></i></div>`;
+  const meals=S.food[nutriDate]||{};
+  let mealHTML='';
+  for(const[k,name] of MEALS){
+    const items=meals[k]||[];
+    const mc=round(items.reduce((s,f)=>s+f.cal,0));
+    mealHTML+=`<div class="meal">
+      <div class="meal-head"><span class="mn">${name}</span><span class="mc num">${mc} kcal</span></div>
+      ${items.map((f,i)=>`<div class="food" data-meal="${k}" data-i="${i}">
+        <div class="finfo"><div class="fn">${escapeHTML(f.name)}</div>
+          <div class="fm">${f.qtyLabel?escapeHTML(f.qtyLabel)+' · ':''}P${round(f.protein)} C${round(f.carbs)} F${round(f.fat)}</div></div>
+        <div class="fcal num">${round(f.cal)}</div></div>`).join('')}
+      <button class="addfood" data-add="${k}">+ Add to ${name.toLowerCase()}</button>
+    </div>`;
+  }
+  $('#nutri_wrap').innerHTML=`
+    <div class="datebar">
+      <button class="icon-btn" id="nPrev">‹</button>
+      <span class="d">${prettyDate(nutriDate)}</span>
+      <button class="icon-btn" id="nNext" ${nutriDate>=todayISO()?'disabled style="opacity:.3"':''}>›</button>
+    </div>
+    <div class="card" style="padding:14px">
+      <div class="daystat">
+        <div class="s"><div class="v" style="color:var(--cal)">${tot.cal}</div><div class="l">/${t.cal} kcal</div>${bar(tot.cal,t.cal,'var(--cal)')}</div>
+        <div class="s"><div class="v" style="color:var(--protein)">${tot.protein}</div><div class="l">/${t.protein}g P</div>${bar(tot.protein,t.protein,'var(--protein)')}</div>
+        <div class="s"><div class="v" style="color:var(--carbs)">${tot.carbs}</div><div class="l">/${t.carbs}g C</div>${bar(tot.carbs,t.carbs,'var(--carbs)')}</div>
+        <div class="s"><div class="v" style="color:var(--fat)">${tot.fat}</div><div class="l">/${t.fat}g F</div>${bar(tot.fat,t.fat,'var(--fat)')}</div>
+      </div>
+    </div>
+    ${mealHTML}`;
+  $('#nPrev').onclick=()=>{nutriDate=addDays(nutriDate,-1);renderNutri();};
+  $('#nNext').onclick=()=>{if(nutriDate<todayISO()){nutriDate=addDays(nutriDate,1);renderNutri();}};
+  $$('#nutri_wrap [data-add]').forEach(b=>b.onclick=()=>openAddFood(b.dataset.add));
+  $$('#nutri_wrap .food').forEach(el=>el.onclick=()=>editFood(el.dataset.meal,+el.dataset.i));
+}
+
+function addFoodEntry(meal,food){
+  if(!S.food[nutriDate])S.food[nutriDate]={};
+  if(!S.food[nutriDate][meal])S.food[nutriDate][meal]=[];
+  S.food[nutriDate][meal].push(food);save();
+}
+
+/* ---- add-food sheet (Search / Scan / Manual) ---- */
+function openAddFood(meal){
+  openSheet('Add food',`
+    <div class="tabs" id="af_tabs">
+      <button data-t="search" class="on">Search</button>
+      <button data-t="scan">Scan</button>
+      <button data-t="manual">Manual</button>
+    </div>
+    <div id="af_panel"></div>`);
+  const tabs=$$('#af_tabs button');
+  const setTab=t=>{tabs.forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+    if(t!=='scan')stopScanner();
+    if(t==='search')panelSearch(meal); else if(t==='scan')panelScan(meal); else panelManual(meal);};
+  tabs.forEach(b=>b.onclick=()=>setTab(b.dataset.t));
+  panelSearch(meal);
+}
+
+function panelSearch(meal){
+  $('#af_panel').innerHTML=`
+    <div class="field"><input class="input" id="af_q" placeholder="Search foods (e.g. greek yogurt)" autocomplete="off"></div>
+    <div id="af_results"><p class="note">Powered by Open Food Facts — a free community database. Best for packaged &amp; branded foods. Can't find it? Use Manual.</p></div>`;
+  const inp=$('#af_q'); if(inp)inp.focus();
+  let timer;
+  inp.oninput=()=>{clearTimeout(timer);const q=inp.value.trim();if(q.length<2)return;timer=setTimeout(()=>doSearch(q,meal),450);};
+}
+async function doSearch(q,meal){
+  const box=$('#af_results'); box.innerHTML='<p class="note">Searching…</p>';
+  try{
+    const url=`${OFF}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=25&fields=product_name,brands,nutriments`;
+    const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(),12000);
+    const r=await fetch(url,{signal:ctrl.signal}); clearTimeout(to);
+    const data=await r.json();
+    const prods=(data.products||[]).filter(p=>p.product_name&&p.nutriments&&p.nutriments['energy-kcal_100g']!=null);
+    if(!prods.length){box.innerHTML='<p class="note">No results. Try a simpler term, or add it manually.</p>';return;}
+    window.__foodCache={};
+    box.innerHTML=prods.slice(0,20).map((p,i)=>{window.__foodCache[i]=p;
+      const kc=round(p.nutriments['energy-kcal_100g']);
+      return `<div class="result" data-i="${i}"><div class="finfo"><div class="rn">${escapeHTML(p.product_name)}</div>
+        <div class="rm">${p.brands?escapeHTML(p.brands.split(',')[0])+' · ':''}${kc} kcal / 100g</div></div><div class="link">Add</div></div>`;
+    }).join('');
+    $$('#af_results .result').forEach(el=>el.onclick=()=>portionDialog(window.__foodCache[+el.dataset.i],meal));
+  }catch(e){box.innerHTML='<p class="note">Couldn\'t reach the food database (offline or blocked here). On your hosted site this works — for now, use Manual entry.</p>';}
+}
+
+function nutriPer100(p){const n=p.nutriments||{};return{
+  cal:+n['energy-kcal_100g']||0,protein:+n['proteins_100g']||0,carbs:+n['carbohydrates_100g']||0,fat:+n['fat_100g']||0};}
+function portionDialog(p,meal){
+  const per=nutriPer100(p);
+  openSheet(p.product_name?p.product_name.slice(0,42):'Add food',`
+    <p class="muted small" style="margin-top:-4px">${p.brands?escapeHTML(p.brands.split(',')[0]):''}</p>
+    <div class="field"><label>Amount (grams)</label><input class="input num" id="pd_g" type="number" inputmode="decimal" value="100"></div>
+    <div class="daystat" style="margin-bottom:14px">
+      <div class="s"><div class="v num" id="pd_cal" style="color:var(--cal)">0</div><div class="l">kcal</div></div>
+      <div class="s"><div class="v num" id="pd_p" style="color:var(--protein)">0</div><div class="l">P</div></div>
+      <div class="s"><div class="v num" id="pd_c" style="color:var(--carbs)">0</div><div class="l">C</div></div>
+      <div class="s"><div class="v num" id="pd_f" style="color:var(--fat)">0</div><div class="l">F</div></div>
+    </div>
+    <div class="field"><label>Meal</label><select class="input" id="pd_meal">${MEALS.map(m=>`<option value="${m[0]}" ${m[0]===meal?'selected':''}>${m[1]}</option>`).join('')}</select></div>
+    <button class="btn btn-primary" id="pd_add">Add food</button>`);
+  const calc=()=>{const g=+$('#pd_g').value||0,k=g/100;
+    $('#pd_cal').textContent=round(per.cal*k);$('#pd_p').textContent=round(per.protein*k,1);
+    $('#pd_c').textContent=round(per.carbs*k,1);$('#pd_f').textContent=round(per.fat*k,1);};
+  $('#pd_g').oninput=calc; calc();
+  $('#pd_add').onclick=()=>{const g=+$('#pd_g').value||0,k=g/100;
+    addFoodEntry($('#pd_meal').value,{name:p.product_name||'Food',cal:round(per.cal*k),protein:round(per.protein*k,1),
+      carbs:round(per.carbs*k,1),fat:round(per.fat*k,1),qtyLabel:g+' g'});
+    closeSheet();renderNutri();toast('Added');};
+}
+
+/* ---- barcode scanning ---- */
+function panelScan(meal){
+  $('#af_panel').innerHTML=`
+    <div id="reader"></div>
+    <p class="note" id="scanNote">Point the camera at a barcode. Camera works on the hosted (https) site.</p>
+    <div class="field" style="margin-top:8px"><label>Or enter a barcode number</label>
+      <div class="two"><input class="input num" id="bc_num" inputmode="numeric" placeholder="e.g. 737628064502">
+      <button class="btn btn-ghost" id="bc_go" style="width:auto">Look up</button></div></div>`;
+  $('#bc_go').onclick=()=>{const c=$('#bc_num').value.trim();if(c)lookupBarcode(c,meal);};
+  startScanner(meal);
+}
+function ensureScannerLib(){return new Promise((res,rej)=>{
+  if(window.Html5Qrcode)return res();
+  const s=document.createElement('script');s.src='https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+  s.onload=()=>res();s.onerror=()=>rej(new Error('load'));document.head.appendChild(s);});}
+async function startScanner(meal){
+  try{await ensureScannerLib();}catch(e){const n=$('#scanNote');if(n)n.textContent='Scanner needs internet to load. Type the barcode number instead.';return;}
+  try{
+    scanner=new Html5Qrcode('reader',{formatsToSupport:[
+      Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E,Html5QrcodeSupportedFormats.CODE_128]});
+    await scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:250,height:160}},
+      text=>{if(navigator.vibrate)navigator.vibrate(60);stopScanner();lookupBarcode(text,meal);},()=>{});
+  }catch(e){const n=$('#scanNote');if(n)n.textContent='Camera unavailable here — allow camera access on the hosted site, or type the barcode.';}
+}
+function stopScanner(){if(scanner){try{scanner.stop().then(()=>{try{scanner.clear();}catch(e){}scanner=null;}).catch(()=>{scanner=null;});}catch(e){scanner=null;}}}
+async function lookupBarcode(code,meal){
+  const n=$('#scanNote'); if(n)n.textContent='Looking up '+code+'…';
+  try{
+    const r=await fetch(`${OFF}/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,nutriments`);
+    const d=await r.json();
+    if(d.status===1&&d.product&&d.product.nutriments){portionDialog(d.product,meal);}
+    else{toast('Product not found');if(n)n.textContent='Not in the database. Add it manually instead.';}
+  }catch(e){toast('Lookup failed (offline?)');}
+}
+
+/* ---- manual entry ---- */
+function panelManual(meal){
+  $('#af_panel').innerHTML=`
+    <div class="field"><label>Food name</label><input class="input" id="mf_name" placeholder="e.g. Chicken &amp; rice"></div>
+    <div class="three">
+      <div class="field"><label>Kcal</label><input class="input num" id="mf_cal" type="number" inputmode="decimal" placeholder="0"></div>
+      <div class="field"><label>Protein</label><input class="input num" id="mf_p" type="number" inputmode="decimal" placeholder="0"></div>
+      <div class="field"><label>Carbs</label><input class="input num" id="mf_c" type="number" inputmode="decimal" placeholder="0"></div>
+    </div>
+    <div class="field"><label>Fat (g)</label><input class="input num" id="mf_f" type="number" inputmode="decimal" placeholder="0"></div>
+    <div class="field"><label>Meal</label><select class="input" id="mf_meal">${MEALS.map(m=>`<option value="${m[0]}" ${m[0]===meal?'selected':''}>${m[1]}</option>`).join('')}</select></div>
+    <button class="btn btn-primary" id="mf_add">Add food</button>`;
+  $('#mf_add').onclick=()=>{const name=$('#mf_name').value.trim();if(!name){toast('Enter a food name');return;}
+    addFoodEntry($('#mf_meal').value,{name,cal:+$('#mf_cal').value||0,protein:+$('#mf_p').value||0,
+      carbs:+$('#mf_c').value||0,fat:+$('#mf_f').value||0,qtyLabel:'manual'});
+    closeSheet();renderNutri();toast('Added');};
+}
+
+/* ---- edit / delete an entry ---- */
+function editFood(meal,i){
+  const f=S.food[nutriDate][meal][i]; if(!f)return;
+  openSheet('Edit food',`
+    <div class="field"><label>Food</label><input class="input" id="ef_name" value="${escapeHTML(f.name)}"></div>
+    <div class="three">
+      <div class="field"><label>Kcal</label><input class="input num" id="ef_cal" type="number" inputmode="decimal" value="${round(f.cal)}"></div>
+      <div class="field"><label>Protein</label><input class="input num" id="ef_p" type="number" inputmode="decimal" value="${round(f.protein,1)}"></div>
+      <div class="field"><label>Carbs</label><input class="input num" id="ef_c" type="number" inputmode="decimal" value="${round(f.carbs,1)}"></div>
+    </div>
+    <div class="field"><label>Fat (g)</label><input class="input num" id="ef_f" type="number" inputmode="decimal" value="${round(f.fat,1)}"></div>
+    <button class="btn btn-primary" id="ef_save">Save changes</button>
+    <button class="btn btn-ghost" id="ef_del" style="margin-top:10px;color:var(--bad)">Delete</button>`);
+  $('#ef_save').onclick=()=>{f.name=$('#ef_name').value.trim()||f.name;f.cal=+$('#ef_cal').value||0;
+    f.protein=+$('#ef_p').value||0;f.carbs=+$('#ef_c').value||0;f.fat=+$('#ef_f').value||0;f.qtyLabel=f.qtyLabel||'edited';
+    save();closeSheet();renderNutri();toast('Updated');};
+  $('#ef_del').onclick=()=>{S.food[nutriDate][meal].splice(i,1);save();closeSheet();renderNutri();toast('Removed');};
+}
+
+/* release the camera if the sheet is dismissed mid-scan */
+$('#sheet_close').addEventListener('click',stopScanner);
+$('#sheetBg').addEventListener('click',stopScanner);
+
+/* ============================================================
+   SECTION 4 — WORKOUT TRACKING
+   ============================================================ */
+
+/* ---- evidence-based exercise library ---- */
+function X(name,sets,rep){return{name,sets,rep};}
+const DAYS={
+  fbA:{name:'Full Body A',ex:[X('Back Squat',3,'6-10'),X('Bench Press',3,'6-10'),X('Lat Pulldown',3,'8-12'),
+    X('Seated DB Shoulder Press',2,'8-12'),X('Lying Leg Curl',2,'10-15'),X('Triceps Pushdown',2,'10-15')]},
+  fbB:{name:'Full Body B',ex:[X('Romanian Deadlift',3,'6-10'),X('Incline DB Press',3,'8-12'),X('Seated Cable Row',3,'8-12'),
+    X('Bulgarian Split Squat',2,'8-12'),X('DB Lateral Raise',3,'12-20'),X('Biceps Curl',2,'10-15')]},
+  fbC:{name:'Full Body C',ex:[X('Leg Press',3,'8-12'),X('Pull-Up / Assisted',3,'6-10'),X('DB Bench Press',3,'8-12'),
+    X('Walking Lunge',2,'10-12'),X('Face Pull',3,'12-20'),X('Hanging Leg Raise',3,'10-15')]},
+  upA:{name:'Upper A',ex:[X('Bench Press',3,'6-10'),X('Bent-Over Row',3,'8-12'),X('Overhead Press',2,'8-12'),
+    X('Lat Pulldown',2,'10-12'),X('DB Lateral Raise',3,'12-20'),X('Triceps Pushdown',2,'10-15'),X('Biceps Curl',2,'10-15')]},
+  loA:{name:'Lower A',ex:[X('Back Squat',3,'6-10'),X('Romanian Deadlift',3,'8-12'),X('Leg Press',2,'10-12'),
+    X('Lying Leg Curl',3,'10-15'),X('Standing Calf Raise',3,'10-15'),X('Hanging Leg Raise',3,'10-15')]},
+  upB:{name:'Upper B',ex:[X('Incline DB Press',3,'8-12'),X('Pull-Up / Lat Pulldown',3,'6-10'),X('Seated Cable Row',3,'8-12'),
+    X('DB Shoulder Press',2,'8-12'),X('Cable Fly',2,'12-15'),X('Face Pull',3,'12-20'),X('Hammer Curl',2,'10-15')]},
+  loB:{name:'Lower B',ex:[X('Deadlift',3,'4-6'),X('Bulgarian Split Squat',3,'8-12'),X('Leg Extension',3,'12-15'),
+    X('Seated Leg Curl',3,'10-15'),X('Seated Calf Raise',3,'12-20'),X('Cable Crunch',3,'12-15')]},
+  push:{name:'Push',ex:[X('Bench Press',3,'6-10'),X('Overhead Press',3,'8-12'),X('Incline DB Press',3,'8-12'),
+    X('DB Lateral Raise',4,'12-20'),X('Triceps Pushdown',3,'10-15'),X('Overhead Triceps Ext.',2,'10-15')]},
+  pull:{name:'Pull',ex:[X('Deadlift',2,'4-6'),X('Pull-Up / Lat Pulldown',3,'6-10'),X('Bent-Over Row',3,'8-12'),
+    X('Seated Cable Row',3,'10-12'),X('Face Pull',3,'12-20'),X('Barbell Curl',3,'8-12'),X('Hammer Curl',2,'10-15')]},
+  legs:{name:'Legs',ex:[X('Back Squat',3,'6-10'),X('Romanian Deadlift',3,'8-12'),X('Leg Press',3,'10-12'),
+    X('Lying Leg Curl',3,'10-15'),X('Standing Calf Raise',4,'10-15'),X('Hanging Leg Raise',3,'10-15')]},
+};
+let _uid=0;
+function buildRoutine(key){
+  const sp=SPLITS[key]||SPLITS.fb3;
+  return {key,label:sp.label,dayCursor:0,
+    days:sp.days.map(dk=>({name:DAYS[dk].name,ex:DAYS[dk].ex.map(e=>({id:'x'+(_uid++),name:e.name,sets:e.sets,rep:e.rep}))}))};
+}
+const e1rm=(w,r)=>(w>0&&r>0)?w*(1+r/30):0;   // Epley estimated 1RM
+
+/* ---- rest timer (full) ---- */
+let restInt=null, restLeft=0;
+const fmtClock=s=>Math.floor(s/60)+':'+String(Math.max(0,s)%60).padStart(2,'0');
+function startRest(seconds){
+  restLeft=seconds; $('#rest_t').textContent=fmtClock(restLeft); $('#rest').classList.add('show');
+  clearInterval(restInt);
+  restInt=setInterval(()=>{
+    restLeft--;
+    if(restLeft<=0){clearInterval(restInt);restInt=null;$('#rest_t').textContent='0:00';$('#rest').classList.remove('show');
+      restBeep(); if(navigator.vibrate)navigator.vibrate([120,60,120]); toast('Rest complete'); return;}
+    $('#rest_t').textContent=fmtClock(restLeft);
+  },1000);
+}
+function stopRest(){clearInterval(restInt);restInt=null;$('#rest').classList.remove('show');}
+function restBeep(){try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;const c=new AC();
+  const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.value=880;
+  g.gain.setValueAtTime(.0001,c.currentTime);g.gain.exponentialRampToValueAtTime(.3,c.currentTime+.02);
+  g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+.5);o.start();o.stop(c.currentTime+.55);}catch(e){}}
+$('#rest_x').onclick=stopRest;
+$$('#rest [data-rest]').forEach(b=>b.onclick=()=>{if(!restInt)return;
+  restLeft=Math.max(5,restLeft+(+b.dataset.rest));$('#rest_t').textContent=fmtClock(restLeft);});
+
+/* ---- rest-day helper (shared with Home in Section 5) ---- */
+function markRest(on){const iso=todayISO();
+  if(on)S.workout.log[iso]={rest:true,dayName:'Rest',exercises:[],cardio:[],completed:false};
+  else delete S.workout.log[iso];
+  save();}
+
+/* ---- today's session ---- */
+function getSession(){
+  if(!S.workout.routine)S.workout.routine=buildRoutine(S.profile.splitKey||recommendSplit(S.profile.freq));
+  const iso=todayISO(); let log=S.workout.log[iso];
+  if(log&&log.rest)return log;
+  if(!log){
+    const rt=S.workout.routine, day=rt.days[rt.dayCursor];
+    log={dayName:day.name,fromCursor:rt.dayCursor,completed:false,
+      exercises:day.ex.map(e=>({name:e.name,rep:e.rep,sets:Array.from({length:e.sets},()=>({w:'',r:'',done:false}))})),
+      cardio:[]};
+    S.workout.log[iso]=log; save();
+  }
+  return log;
+}
+function setWorkoutDay(i){
+  const rt=S.workout.routine, day=rt.days[i];
+  S.workout.log[todayISO()]={dayName:day.name,fromCursor:i,completed:false,
+    exercises:day.ex.map(e=>({name:e.name,rep:e.rep,sets:Array.from({length:e.sets},()=>({w:'',r:'',done:false}))})),cardio:[]};
+  save();
+}
+
+function renderWork(){
+  const log=getSession(), rt=S.workout.routine;
+  $('#work_hello').textContent=log.completed?'Nice work today':'Let\'s move';
+  if(log.rest){
+    $('#work_wrap').innerHTML=`<div class="card center" style="padding:30px 18px">
+      <div style="font-size:30px;margin-bottom:8px">😌</div><h3 style="margin-bottom:6px">Rest day</h3>
+      <p class="muted small">Recovery is when muscle is built. Enjoy it.</p>
+      <div class="btn-row" style="justify-content:center"><button class="btn btn-ghost btn-sm" id="undoRest">Switch to a workout</button></div></div>`;
+    $('#undoRest').onclick=()=>{markRest(false);renderWork();};
+    return;
+  }
+  const exHTML=log.exercises.map((e,ei)=>{
+    const best=S.prs[e.name];
+    const rows=e.sets.map((s,si)=>{
+      const isPR=s.done&&best&&+s.w>0&&Math.abs(e1rm(+s.w,+s.r)-best.e1rm)<0.01;
+      return `<div class="setrow ${isPR?'pr':''}" data-ei="${ei}" data-si="${si}">
+        <div class="si">${si+1}</div>
+        <input class="w" type="number" inputmode="decimal" placeholder="lb" value="${s.w}">
+        <input class="r" type="number" inputmode="numeric" placeholder="reps" value="${s.r}">
+        <button class="chk ${s.done?'on':''}">${s.done?'✓':''}</button></div>`;
+    }).join('');
+    return `<div class="ex" data-ei="${ei}">
+      <div class="ex-head"><div class="finfo"><span class="en">${escapeHTML(e.name)}${best?`<span class="pr-tag">PR ${best.weight}×${best.reps}</span>`:''}</span>
+        <div class="er">Target ${e.rep||''} reps · last reps hard</div></div>
+        <button class="icon-btn exMenu">⋯</button></div>
+      <div class="sets"><div class="sethdr"><span>#</span><span>Weight</span><span>Reps</span><span>✓</span></div>${rows}</div>
+      <div class="ex-actions"><button class="mini addSet">+ Set</button><button class="mini restBtn">⏱ Rest 2:00</button></div></div>`;
+  }).join('');
+  const cardioHTML=(log.cardio||[]).map((c,i)=>`<div class="cardio-item" data-ci="${i}">
+    <div class="finfo"><div class="fn">${escapeHTML(c.type)}</div><div class="fm">${c.min} min${c.dist?' · '+c.dist+' mi':''}${c.cal?' · '+c.cal+' kcal':''}</div></div>
+    <button class="icon-btn delCardio">✕</button></div>`).join('');
+  $('#work_wrap').innerHTML=`
+    <div class="card" style="padding:14px 16px">
+      <div class="row between"><div class="finfo"><div class="small muted">${rt.label}</div>
+        <div class="num" style="font-weight:600;font-size:17px">${log.dayName}${log.completed?' ✓':''}</div></div>
+        <button class="mini" id="pickDay">Change</button></div></div>
+    ${exHTML}
+    <button class="addfood" id="addEx">+ Add exercise</button>
+    <div class="section-title"><h3>Cardio</h3></div>
+    ${cardioHTML}
+    <button class="addfood" id="addCardio">+ Log cardio</button>
+    <div style="margin-top:20px">
+      ${log.completed?`<button class="btn btn-ghost" id="reopenW">Completed ✓ · tap to edit</button>`
+        :`<button class="btn btn-primary" id="finishW">Finish workout</button>`}</div>`;
+  $$('#work_wrap .setrow').forEach(row=>{
+    const ei=+row.dataset.ei, si=+row.dataset.si;
+    const wEl=row.querySelector('.w'), rEl=row.querySelector('.r'), chk=row.querySelector('.chk');
+    const sync=()=>{const s=S.workout.log[todayISO()].exercises[ei].sets[si];s.w=wEl.value;s.r=rEl.value;};
+    wEl.onchange=()=>{sync();save();};
+    rEl.onchange=()=>{sync();save();};
+    chk.onclick=()=>{sync();toggleSet(ei,si);};
+  });
+  $$('#work_wrap .addSet').forEach(b=>b.onclick=()=>{const ei=+b.closest('.ex').dataset.ei;
+    S.workout.log[todayISO()].exercises[ei].sets.push({w:'',r:'',done:false});save();renderWork();});
+  $$('#work_wrap .restBtn').forEach(b=>b.onclick=()=>startRest(120));
+  $$('#work_wrap .exMenu').forEach(b=>b.onclick=()=>exerciseMenu(+b.closest('.ex').dataset.ei));
+  $$('#work_wrap .delCardio').forEach(b=>b.onclick=()=>{const ci=+b.closest('.cardio-item').dataset.ci;
+    S.workout.log[todayISO()].cardio.splice(ci,1);save();renderWork();});
+  $('#addEx').onclick=addExerciseDialog;
+  $('#addCardio').onclick=cardioDialog;
+  $('#pickDay').onclick=pickDayDialog;
+  const fw=$('#finishW');if(fw)fw.onclick=finishWorkout;
+  const rw=$('#reopenW');if(rw)rw.onclick=()=>{S.workout.log[todayISO()].completed=false;save();renderWork();};
+}
+
+function toggleSet(ei,si){
+  const log=S.workout.log[todayISO()], ex=log.exercises[ei], s=ex.sets[si];
+  s.done=!s.done;
+  if(s.done&&+s.w>0&&+s.r>0){
+    const er=e1rm(+s.w,+s.r), best=S.prs[ex.name];
+    if(!best||er>best.e1rm+0.01){
+      S.prs[ex.name]={weight:+s.w,reps:+s.r,e1rm:er,date:todayISO()};
+      save(); renderWork(); toast('🏆 New PR: '+ex.name+' '+(+s.w)+'×'+(+s.r),true); return;
+    }
+  }
+  save(); renderWork();
+}
+function finishWorkout(){
+  const iso=todayISO(), log=S.workout.log[iso], rt=S.workout.routine;
+  const anyDone=log.exercises.some(e=>e.sets.some(s=>s.done))||(log.cardio&&log.cardio.length);
+  if(!anyDone){toast('Log at least one set or cardio first');return;}
+  log.completed=true;
+  if(log.fromCursor===rt.dayCursor)rt.dayCursor=(rt.dayCursor+1)%rt.days.length;
+  save(); renderWork(); toast('Workout saved 💪');
+}
+
+/* ---- exercise customization ---- */
+function exerciseMenu(ei){
+  const log=S.workout.log[todayISO()], e=log.exercises[ei];
+  openSheet(e.name,`
+    <button class="btn btn-ghost" id="xm_swap">Rename / change reps</button>
+    <button class="btn btn-ghost" id="xm_addset" style="margin-top:10px">Add a set</button>
+    <button class="btn btn-ghost" id="xm_delset" style="margin-top:10px" ${e.sets.length<=1?'disabled style="opacity:.4"':''}>Remove last set</button>
+    <button class="btn btn-ghost" id="xm_del" style="margin-top:10px;color:var(--bad)">Remove exercise</button>`);
+  $('#xm_swap').onclick=()=>{closeSheet();renameExercise(ei);};
+  $('#xm_addset').onclick=()=>{e.sets.push({w:'',r:'',done:false});save();closeSheet();renderWork();};
+  $('#xm_delset').onclick=()=>{if(e.sets.length>1)e.sets.pop();save();closeSheet();renderWork();};
+  $('#xm_del').onclick=()=>{log.exercises.splice(ei,1);save();closeSheet();renderWork();};
+}
+function renameExercise(ei){
+  const e=S.workout.log[todayISO()].exercises[ei];
+  openSheet('Edit exercise',`
+    <div class="field"><label>Exercise name</label><input class="input" id="rx_n" value="${escapeHTML(e.name)}"></div>
+    <div class="field"><label>Target reps</label><input class="input" id="rx_r" value="${escapeHTML(e.rep||'')}" placeholder="e.g. 8-12"></div>
+    <button class="btn btn-primary" id="rx_save">Save</button>`);
+  $('#rx_save').onclick=()=>{e.name=$('#rx_n').value.trim()||e.name;e.rep=$('#rx_r').value.trim();save();closeSheet();renderWork();};
+}
+function addExerciseDialog(){
+  const log=S.workout.log[todayISO()];
+  openSheet('Add exercise',`
+    <div class="field"><label>Exercise name</label><input class="input" id="ae_n" placeholder="e.g. Cable Lateral Raise"></div>
+    <div class="two"><div class="field"><label>Sets</label><input class="input num" id="ae_s" type="number" inputmode="numeric" value="3"></div>
+      <div class="field"><label>Target reps</label><input class="input" id="ae_r" placeholder="8-12" value="8-12"></div></div>
+    <button class="btn btn-primary" id="ae_add">Add to workout</button>`);
+  $('#ae_add').onclick=()=>{const n=$('#ae_n').value.trim();if(!n){toast('Enter a name');return;}
+    const ns=clamp(+$('#ae_s').value||3,1,12);
+    log.exercises.push({name:n,rep:$('#ae_r').value.trim()||'8-12',sets:Array.from({length:ns},()=>({w:'',r:'',done:false}))});
+    save();closeSheet();renderWork();};
+}
+function cardioDialog(){
+  const log=S.workout.log[todayISO()];
+  const types=['Run','Walk','Cycling','Rowing','Elliptical','Stair climber','Swimming'];
+  openSheet('Log cardio',`
+    <div class="field"><label>Type</label><select class="input" id="cd_t">${types.map(t=>`<option>${t}</option>`).join('')}</select></div>
+    <div class="two"><div class="field"><label>Duration (min)</label><input class="input num" id="cd_min" type="number" inputmode="numeric" placeholder="30"></div>
+      <div class="field"><label>Distance (mi)</label><input class="input num" id="cd_dist" type="number" inputmode="decimal" placeholder="optional"></div></div>
+    <div class="field"><label>Calories burned (optional)</label><input class="input num" id="cd_cal" type="number" inputmode="numeric" placeholder="optional"></div>
+    <button class="btn btn-primary" id="cd_add">Add cardio</button>`);
+  $('#cd_add').onclick=()=>{const min=+$('#cd_min').value||0;if(!min){toast('Enter a duration');return;}
+    log.cardio=log.cardio||[];
+    log.cardio.push({type:$('#cd_t').value,min,dist:+$('#cd_dist').value||0,cal:+$('#cd_cal').value||0});
+    save();closeSheet();renderWork();toast('Cardio logged');};
+}
+function pickDayDialog(){
+  const rt=S.workout.routine;
+  openSheet('Choose workout',`
+    <p class="muted small" style="margin-top:-4px">From <b>${rt.label}</b>. Replaces today's session.</p>
+    ${rt.days.map((d,i)=>`<button class="btn btn-ghost" style="margin-top:8px;justify-content:space-between" data-day="${i}">
+      <span>${d.name}</span><span class="faint">${d.ex.length} exercises</span></button>`).join('')}`);
+  $$('#sheet_body [data-day]').forEach(b=>b.onclick=()=>{setWorkoutDay(+b.dataset.day);closeSheet();renderWork();});
+}
+
+/* ============================================================
+   SECTION 5 — STREAKS, PROGRESS & SETTINGS
+   ============================================================ */
+
+/* ---- streaks ---- */
+function nutritionStreak(){
+  let n=0,cur=todayISO();
+  if(dayTotals(cur).cal===0)cur=addDays(cur,-1);
+  while(dayTotals(cur).cal>0){n++;cur=addDays(cur,-1);if(n>3650)break;}
+  return n;
+}
+function workoutWeeksStreak(){
+  const goal=Math.max(1,S.profile.freq), byWeek={};
+  for(const iso in S.workout.log){const l=S.workout.log[iso];
+    if(l.completed&&!l.rest){const wk=isoWeekKey(parseISO(iso));byWeek[wk]=(byWeek[wk]||0)+1;}}
+  const met=w=>(byWeek[w]||0)>=goal;
+  let cur=isoWeekKey(new Date()), streak=0;
+  if(!met(cur))cur=prevWeek(cur);
+  while(met(cur)){streak++;cur=prevWeek(cur);if(streak>520)break;}
+  return streak;
+}
+function updateStreaksUI(){const f=$('#st_food'),w=$('#st_wk');
+  if(f)f.textContent=nutritionStreak(); if(w)w.textContent=workoutWeeksStreak();}
+
+$('#gearBtn').onclick=()=>go('settings');
+$('#streakBtn').onclick=()=>{
+  const fs=nutritionStreak(), ws=workoutWeeksStreak();
+  openSheet('Your streaks',`
+    <div class="stat2">
+      <div class="s"><div class="v" style="color:var(--streak)">${fs}</div><div class="l">🔥 Day nutrition streak<br><span class="faint">consecutive days you logged food</span></div></div>
+      <div class="s"><div class="v" style="color:var(--carbs)">${ws}</div><div class="l">▣ Week workout streak<br><span class="faint">weeks you hit your ${S.profile.freq}-day goal</span></div></div>
+    </div>
+    <p class="note">Log any food to keep your nutrition streak alive. Hit your weekly training target to extend your workout streak — rest days don't break it.</p>`);
+};
+
+/* ---- progress ---- */
+function renderProg(){
+  const t=S.profile.targets;
+  const fs=nutritionStreak(), ws=workoutWeeksStreak();
+  const days=[]; for(let i=13;i>=0;i--)days.push(addDays(todayISO(),-i));
+  const calData=days.map(d=>dayTotals(d).cal);
+  const w=[...S.weights].sort((a,b)=>a.date<b.date?-1:1);
+  const wChart=w.length>=2?lineChart(w.map(x=>x.lb),w.map(x=>x.date)):'<p class="note">Log your weight a few times to see your trend.</p>';
+  const lastW=w.length?w[w.length-1]:null;
+  const prKeys=Object.keys(S.prs).sort((a,b)=>S.prs[b].e1rm-S.prs[a].e1rm);
+  const prHTML=prKeys.length?prKeys.map(k=>`<div class="pr-item"><div class="finfo"><div class="pn">${escapeHTML(k)}</div>
+    <div class="fm faint">${prettyDate(S.prs[k].date)}</div></div><div class="pv num">${S.prs[k].weight} lb × ${S.prs[k].reps}</div></div>`).join('')
+    :'<p class="note">Complete sets in your workouts to set personal records here.</p>';
+  $('#prog_wrap').innerHTML=`
+    <div class="stat2">
+      <div class="s"><div class="v" style="color:var(--streak)">${fs}🔥</div><div class="l">Day nutrition streak</div></div>
+      <div class="s"><div class="v" style="color:var(--carbs)">${ws}</div><div class="l">Week workout streak</div></div>
+    </div>
+    <div class="section-title"><h3>Calories · last 14 days</h3></div>
+    <div class="card chart-card">${barChart(calData,days,t.cal,'var(--cal)')}
+      <p class="note center">Dashed line = ${t.cal} kcal target</p></div>
+    <div class="section-title"><h3>Body weight</h3><button class="link" id="logWeight">+ Log</button></div>
+    <div class="card chart-card">
+      ${lastW?`<div class="row between" style="margin-bottom:10px"><span class="muted small">Latest</span>
+        <span class="num" style="font-weight:600">${lastW.lb} lb · ${prettyDate(lastW.date)}</span></div>`:''}
+      ${wChart}</div>
+    <div class="section-title"><h3>Personal records</h3></div>
+    <div class="card">${prHTML}</div>`;
+  $('#logWeight').onclick=logWeightDialog;
+}
+function logWeightDialog(){
+  const last=S.weights.length?S.weights[S.weights.length-1].lb:S.profile.weightLb;
+  openSheet('Log body weight',`
+    <div class="field"><label>Weight (lb) · ${prettyDate(todayISO())}</label>
+      <input class="input num" id="lw_v" type="number" inputmode="decimal" value="${last}"></div>
+    <button class="btn btn-primary" id="lw_save">Save</button>`);
+  $('#lw_save').onclick=()=>{const v=+$('#lw_v').value||0; if(v<60||v>700){toast('Enter a valid weight');return;}
+    const today=todayISO(), ex=S.weights.find(x=>x.date===today);
+    if(ex)ex.lb=v; else S.weights.push({date:today,lb:v});
+    S.profile.weightLb=v;
+    save(); closeSheet(); renderProg(); toast('Weight logged');};
+}
+
+/* ---- settings ---- */
+function renderSettings(){
+  const p=S.profile, t=p.targets;
+  const goalTxt={lose:'Lose weight',maintain:'Maintain',gain:'Gain weight'}[p.goal];
+  $('#settings_wrap').innerHTML=`
+    <div class="card"><div class="small muted" style="margin-bottom:6px">Signed in as</div>
+      <div class="num" style="font-weight:600;font-size:18px">${escapeHTML(USER)}</div></div>
+
+    <div class="section-title"><h3>Your targets</h3><button class="link" id="setEditTargets">Edit</button></div>
+    <div class="card">
+      <div class="daystat">
+        <div class="s"><div class="v" style="color:var(--cal)">${t.cal}</div><div class="l">kcal</div></div>
+        <div class="s"><div class="v" style="color:var(--protein)">${t.protein}</div><div class="l">P</div></div>
+        <div class="s"><div class="v" style="color:var(--carbs)">${t.carbs}</div><div class="l">C</div></div>
+        <div class="s"><div class="v" style="color:var(--fat)">${t.fat}</div><div class="l">F</div></div>
+      </div>
+      <p class="note">Maintenance ≈ ${t.tdee} kcal. Edit to set your own numbers, or recalculate from your stats.</p>
+    </div>
+
+    <div class="section-title"><h3>Stats &amp; goal</h3></div>
+    <div class="card">
+      <div class="setrowline"><span>Goal</span><b>${goalTxt}</b></div>
+      <div class="setrowline"><span>Training days</span><b>${p.freq} / week</b></div>
+      <div class="setrowline"><span>Height</span><b>${Math.floor(p.heightIn/12)}'${p.heightIn%12}"</b></div>
+      <div class="setrowline"><span>Weight</span><b>${p.weightLb} lb</b></div>
+      <div class="setrowline"><span>Age</span><b>${p.age}</b></div>
+      <div class="btn-row"><button class="btn btn-ghost btn-sm" id="setRecalc">Edit stats / recalculate</button></div>
+    </div>
+
+    <div class="section-title"><h3>Training program</h3></div>
+    <div class="card">
+      <div class="num" style="font-weight:600;font-size:16px">${SPLITS[p.splitKey].label}</div>
+      <div class="btn-row"><button class="btn btn-ghost btn-sm" id="setSplit">Change split</button>
+        <button class="btn btn-ghost btn-sm" id="setResetProg">Reset to recommended</button></div>
+      <p class="note">Changing your split rebuilds your routine. Logged history &amp; PRs are kept.</p>
+    </div>
+
+    <div class="section-title"><h3>Your data</h3></div>
+    <div class="card">
+      <div class="btn-row" style="margin-top:0"><button class="btn btn-ghost btn-sm" id="setExport">Export backup</button>
+        <button class="btn btn-ghost btn-sm" id="setImport">Import backup</button></div>
+      <p class="note">Export downloads all your data as a file. Import restores it — handy for moving to a new phone, since data lives on this device.</p>
+    </div>
+
+    <button class="btn btn-ghost" id="setLogout" style="margin-top:8px">Log out</button>
+    <button class="btn btn-ghost" id="setDelete" style="margin-top:10px;color:var(--bad)">Delete account &amp; data</button>
+    <p class="note center" style="margin-top:16px">Nutrition v1 · your data stays on this device</p>`;
+  $('#setEditTargets').onclick=editTargetsDialog;
+  $('#setRecalc').onclick=()=>openOnboarding(S.profile);
+  $('#setSplit').onclick=changeSplitDialog;
+  $('#setResetProg').onclick=()=>{const k=recommendSplit(p.freq);S.workout.routine=buildRoutine(k);S.profile.splitKey=k;save();renderSettings();toast('Program reset');};
+  $('#setExport').onclick=exportData;
+  $('#setImport').onclick=importData;
+  $('#setLogout').onclick=()=>{clearSession();USER=null;S=null;show('auth');renderAuth();};
+  $('#setDelete').onclick=deleteAccount;
+}
+function editTargetsDialog(){
+  const t=S.profile.targets;
+  openSheet('Edit targets',`
+    <p class="muted small" style="margin-top:-4px">Set your own daily numbers.</p>
+    <div class="two"><div class="field"><label>Calories</label><input class="input num" id="et_cal" type="number" inputmode="numeric" value="${t.cal}"></div>
+      <div class="field"><label>Protein (g)</label><input class="input num" id="et_p" type="number" inputmode="numeric" value="${t.protein}"></div></div>
+    <div class="two"><div class="field"><label>Carbs (g)</label><input class="input num" id="et_c" type="number" inputmode="numeric" value="${t.carbs}"></div>
+      <div class="field"><label>Fat (g)</label><input class="input num" id="et_f" type="number" inputmode="numeric" value="${t.fat}"></div></div>
+    <button class="btn btn-primary" id="et_save">Save</button>
+    <button class="btn btn-ghost" id="et_recalc" style="margin-top:10px">Recalculate from my stats instead</button>`);
+  $('#et_save').onclick=()=>{const t2=S.profile.targets;
+    t2.cal=+$('#et_cal').value||t2.cal; t2.protein=+$('#et_p').value||0; t2.carbs=+$('#et_c').value||0; t2.fat=+$('#et_f').value||0;
+    save(); closeSheet(); renderSettings(); toast('Targets updated');};
+  $('#et_recalc').onclick=()=>{closeSheet();openOnboarding(S.profile);};
+}
+function changeSplitDialog(){
+  openSheet('Change split',`
+    <p class="muted small" style="margin-top:-4px">Pick a training split. Rebuilds your routine; history &amp; PRs are kept.</p>
+    ${Object.keys(SPLITS).map(k=>`<button class="btn btn-ghost" style="margin-top:8px;justify-content:space-between" data-split="${k}">
+      <span>${SPLITS[k].label}</span><span class="faint">${SPLITS[k].days.length} days</span></button>`).join('')}`);
+  $$('#sheet_body [data-split]').forEach(b=>b.onclick=()=>{const k=b.dataset.split;
+    S.workout.routine=buildRoutine(k); S.profile.splitKey=k; save(); closeSheet(); renderSettings(); toast('Split changed');});
+}
+function exportData(){
+  try{
+    const blob=new Blob([JSON.stringify({user:USER,data:S,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download='nutrition-v1-'+USER+'-'+todayISO()+'.json';
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},500); toast('Backup downloaded');
+  }catch(e){toast('Export failed');}
+}
+function importData(){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='application/json,.json';
+  inp.onchange=()=>{const f=inp.files&&inp.files[0]; if(!f)return; const rd=new FileReader();
+    rd.onload=()=>{try{const obj=JSON.parse(rd.result), d=obj.data||obj;
+      if(!d||!d.profile){toast('Not a valid backup');return;}
+      S=d; save(); renderSettings(); toast('Backup restored');
+    }catch(e){toast('Could not read file');}};
+    rd.readAsText(f);};
+  inp.click();
+}
+function deleteAccount(){
+  openSheet('Delete account?',`
+    <p class="muted">This permanently removes <b>${escapeHTML(USER)}</b> and all of its data on this device. This can't be undone.</p>
+    <button class="btn btn-ghost" id="del_yes" style="margin-top:14px;color:var(--bad)">Yes, delete everything</button>
+    <button class="btn btn-primary" id="del_no" style="margin-top:10px">Cancel</button>`);
+  $('#del_no').onclick=closeSheet;
+  $('#del_yes').onclick=()=>{const users=getUsers(); delete users[USER]; setUsers(users);
+    localStorage.removeItem(stateKey(USER)); clearSession(); USER=null; S=null; closeSheet(); show('auth'); renderAuth(); toast('Account deleted');};
+}
+
+/* ============================================================
+   BOOT  (real session check)
+   ============================================================ */
+function boot(){
+  const u=getSessionUser();
+  if(u && getUsers()[u]){ startSession(u); }
+  else { clearSession(); show('auth'); renderAuth(); }
+}
+boot();
+
+/* ---- PWA: register service worker for offline use + installability ---- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
