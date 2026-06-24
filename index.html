@@ -414,7 +414,7 @@ async function hashPw(pw,salt){
   let h=5381;const s=salt+pw;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))>>>0;return 'f'+h;
 }
 const stateKey=u=>'nv1.data.'+u;
-function defaultState(){return{profile:null,food:{},workout:{routine:null,log:{}},weights:[],prs:{},myFoods:[]};}
+function defaultState(){return{profile:null,food:{},workout:{routine:null,log:{}},weights:[],prs:{},myFoods:[],recentFoods:[],savedMeals:[]};}
 function loadState(u){try{return JSON.parse(localStorage.getItem(stateKey(u)))||defaultState();}catch(e){return defaultState();}}
 let USER=null, S=null;
 function save(){if(USER&&S)localStorage.setItem(stateKey(USER),JSON.stringify(S));}
@@ -547,6 +547,8 @@ function refreshAuthMode(){
 function startSession(user){
   USER=user; S=loadState(user);
   if(!S.myFoods)S.myFoods=[];
+  if(!S.recentFoods)S.recentFoods=[];
+  if(!S.savedMeals)S.savedMeals=[];
   if(!S.profile){ openOnboarding(); }
   else { show('app'); go('home'); }
 }
@@ -787,24 +789,37 @@ function renderNutri(){
 function addFoodEntry(meal,food){
   if(!S.food[nutriDate])S.food[nutriDate]={};
   if(!S.food[nutriDate][meal])S.food[nutriDate][meal]=[];
-  S.food[nutriDate][meal].push(food);save();
+  S.food[nutriDate][meal].push(food);
+  pushRecent(food);
+  save();
+}
+function pushRecent(food){
+  S.recentFoods=S.recentFoods||[];
+  const key=food.name.toLowerCase();
+  S.recentFoods=S.recentFoods.filter(f=>f.name.toLowerCase()!==key);
+  S.recentFoods.unshift({name:food.name,base:food.base,unit:food.unit,qty:food.qty,serving:food.serving,
+    cal:food.cal,protein:food.protein,carbs:food.carbs,fat:food.fat,qtyLabel:food.qtyLabel});
+  if(S.recentFoods.length>25)S.recentFoods.length=25;
 }
 
 /* ---- add-food sheet (Search / Scan / Manual) ---- */
 function openAddFood(meal){
   openSheet('Add food',`
     <div class="tabs" id="af_tabs">
-      <button data-t="search" class="on">Search</button>
+      <button data-t="recent" class="on">Recent</button>
+      <button data-t="meals">Meals</button>
+      <button data-t="search">Search</button>
       <button data-t="scan">Scan</button>
       <button data-t="manual">Manual</button>
     </div>
     <div id="af_panel"></div>`);
   const tabs=$$('#af_tabs button');
+  const panelFns={recent:panelRecent,meals:panelMeals,search:panelSearch,scan:panelScan,manual:panelManual};
   const setTab=t=>{tabs.forEach(b=>b.classList.toggle('on',b.dataset.t===t));
     if(t!=='scan')stopScanner();
-    if(t==='search')panelSearch(meal); else if(t==='scan')panelScan(meal); else panelManual(meal);};
+    (panelFns[t]||panelRecent)(meal);};
   tabs.forEach(b=>b.onclick=()=>setTab(b.dataset.t));
-  panelSearch(meal);
+  panelRecent(meal);
 }
 
 function panelSearch(meal){
@@ -1001,6 +1016,116 @@ function saveMyFood(f){S.myFoods=S.myFoods||[];
   if(i>=0)S.myFoods[i]=f; else S.myFoods.unshift(f);
   if(S.myFoods.length>50)S.myFoods.length=50;
   save();}
+
+/* ---- recent foods (tap to re-add instantly) ---- */
+function panelRecent(meal){
+  S.recentFoods=S.recentFoods||[];
+  const list=S.recentFoods;
+  $('#af_panel').innerHTML = list.length ? `
+    <div class="small muted" style="margin:2px 2px 7px">Recently logged — tap to add again</div>
+    <div id="rc_list">
+    ${list.map((f,i)=>`<div class="savedfood" data-i="${i}">
+      <span class="sf-name">${escapeHTML(f.name)}</span>
+      <span class="sf-cal num">${round(f.cal)} kcal${f.qtyLabel?' · '+escapeHTML(f.qtyLabel):''}</span>
+      <button class="sf-del" data-del="${i}" aria-label="Remove">✕</button></div>`).join('')}
+    </div>` : '<p class="note">Nothing logged yet. Foods you add will show up here for quick re-adding.</p>';
+  $$('#rc_list .savedfood').forEach(row=>row.onclick=(e)=>{
+    if(e&&e.target&&e.target.closest&&e.target.closest('.sf-del'))return;
+    addRecentToMeal(+row.dataset.i,meal);});
+  $$('#rc_list .sf-del').forEach(b=>b.onclick=(e)=>{if(e&&e.stopPropagation)e.stopPropagation();
+    S.recentFoods.splice(+b.dataset.del,1);save();panelRecent(meal);});
+}
+function addRecentToMeal(i,meal){
+  const f=S.recentFoods[i]; if(!f)return;
+  addFoodEntry(meal,{...f});
+  closeSheet();renderNutri();toast('Added '+f.name);
+}
+
+/* ---- saved meals (combos of ingredients, logged in one tap) ---- */
+function panelMeals(meal){
+  S.savedMeals=S.savedMeals||[];
+  const list=S.savedMeals;
+  $('#af_panel').innerHTML = `
+    <button class="addfood" id="mk_new" style="margin-bottom:14px">+ Create a meal</button>
+    <div id="sm_list">
+    ${list.length?list.map((m,i)=>{
+      const tot=m.items.reduce((s,it)=>s+it.cal,0);
+      return `<div class="savedfood" data-i="${i}" style="align-items:flex-start;padding:11px 12px">
+        <div style="flex:1;min-width:0">
+          <div class="sf-name" style="white-space:normal">${escapeHTML(m.name)}</div>
+          <div class="muted small" style="margin-top:2px">${m.items.length} item${m.items.length===1?'':'s'} · ${round(tot)} kcal</div>
+        </div>
+        <button class="sf-del" data-del="${i}" aria-label="Delete">✕</button></div>`;
+    }).join(''):'<p class="note">No saved meals yet. Combine a few foods once, then log the whole thing in one tap next time.</p>'}
+    </div>`;
+  $('#mk_new').onclick=()=>buildMealDialog(meal);
+  $$('#sm_list .savedfood').forEach(row=>row.onclick=(e)=>{
+    if(e&&e.target&&e.target.closest&&e.target.closest('.sf-del'))return;
+    logSavedMeal(+row.dataset.i,meal);});
+  $$('#sm_list .sf-del').forEach(b=>b.onclick=(e)=>{if(e&&e.stopPropagation)e.stopPropagation();
+    S.savedMeals.splice(+b.dataset.del,1);save();panelMeals(meal);});
+}
+function logSavedMeal(i,meal){
+  const m=S.savedMeals[i]; if(!m)return;
+  m.items.forEach(it=>addFoodEntry(meal,{...it}));
+  closeSheet();renderNutri();toast('Added '+m.name+' ('+m.items.length+' items)');
+}
+let _mealBuild=null;
+function buildMealDialog(meal){_mealBuild={name:'',items:[]};renderMealBuilder(meal);}
+function renderMealBuilder(meal){
+  const b=_mealBuild, saved=S.myFoods||[];
+  const mealLabel=(MEALS.find(m=>m[0]===meal)||['','today'])[1].toLowerCase();
+  openSheet('Create a meal',`
+    <div class="field"><label>Meal name</label><input class="input" id="mk_name" placeholder="e.g. My protein shake" value="${escapeHTML(b.name)}"></div>
+    <div class="small muted" style="margin:10px 2px 7px">Ingredients</div>
+    <div id="mk_items">${b.items.length?b.items.map((it,i)=>`<div class="savedfood" data-i="${i}">
+        <span class="sf-name">${escapeHTML(it.name)}</span>
+        <span class="sf-cal num">${round(it.cal)} kcal</span>
+        <button class="sf-del" data-del="${i}" aria-label="Remove">✕</button></div>`).join(''):'<p class="note">Add at least one ingredient below.</p>'}</div>
+    <div class="daystat" style="margin:12px 0 14px">
+      <div class="s"><div class="v num" style="color:var(--cal)">${round(b.items.reduce((s,x)=>s+x.cal,0))}</div><div class="l">kcal</div></div>
+      <div class="s"><div class="v num" style="color:var(--protein)">${round(b.items.reduce((s,x)=>s+x.protein,0),1)}</div><div class="l">P</div></div>
+      <div class="s"><div class="v num" style="color:var(--carbs)">${round(b.items.reduce((s,x)=>s+x.carbs,0),1)}</div><div class="l">C</div></div>
+      <div class="s"><div class="v num" style="color:var(--fat)">${round(b.items.reduce((s,x)=>s+x.fat,0),1)}</div><div class="l">F</div></div>
+    </div>
+    <hr class="sep" style="margin:0 0 14px">
+    ${saved.length?`<div class="small muted" style="margin:2px 2px 7px">Add from your saved foods</div>
+      <div id="mk_pick" style="margin-bottom:14px">${saved.map((f,i)=>`<div class="savedfood" data-pick="${i}">
+        <span class="sf-name">${escapeHTML(f.name)}</span><span class="sf-cal num">${round(f.cal)} kcal</span></div>`).join('')}</div>
+      <hr class="sep" style="margin:0 0 14px">`:''}
+    <div class="small muted" style="margin:2px 2px 7px">Or add a quick ingredient</div>
+    <div class="field"><input class="input" id="mk_iname" placeholder="Ingredient name"></div>
+    <div class="three">
+      <div class="field"><label>Kcal</label><input class="input num" id="mk_ical" type="number" inputmode="decimal" placeholder="0"></div>
+      <div class="field"><label>Protein</label><input class="input num" id="mk_ip" type="number" inputmode="decimal" placeholder="0"></div>
+      <div class="field"><label>Carbs</label><input class="input num" id="mk_ic" type="number" inputmode="decimal" placeholder="0"></div>
+    </div>
+    <div class="field"><label>Fat (g)</label><input class="input num" id="mk_if" type="number" inputmode="decimal" placeholder="0"></div>
+    <button class="btn btn-ghost" id="mk_iadd" style="margin-bottom:16px">+ Add ingredient</button>
+    <button class="btn btn-primary" id="mk_save" ${b.items.length?'':'disabled style="opacity:.4"'}>Save meal &amp; add to ${mealLabel}</button>`);
+  $('#mk_name').oninput=()=>{b.name=$('#mk_name').value;};
+  $$('#mk_items .sf-del').forEach(btn=>btn.onclick=(e)=>{if(e&&e.stopPropagation)e.stopPropagation();
+    b.items.splice(+btn.dataset.del,1);renderMealBuilder(meal);});
+  $$('#mk_pick .savedfood').forEach(row=>row.onclick=()=>{
+    const f=saved[+row.dataset.pick];
+    b.items.push({name:f.name,base:{cal:f.cal,protein:f.protein,carbs:f.carbs,fat:f.fat},unit:'serving',qty:1,serving:f.serving,
+      cal:f.cal,protein:f.protein,carbs:f.carbs,fat:f.fat,qtyLabel:'1 serving'+(f.serving?' · '+f.serving:'')});
+    renderMealBuilder(meal);});
+  $('#mk_iadd').onclick=()=>{
+    const name=$('#mk_iname').value.trim(); if(!name){toast('Enter an ingredient name');return;}
+    const cal=+$('#mk_ical').value||0,protein=+$('#mk_ip').value||0,carbs=+$('#mk_ic').value||0,fat=+$('#mk_if').value||0;
+    b.items.push({name,base:{cal,protein,carbs,fat},unit:'serving',qty:1,cal,protein,carbs,fat,qtyLabel:'1 serving'});
+    renderMealBuilder(meal);};
+  $('#mk_save').onclick=()=>{
+    if(!b.items.length){toast('Add at least one ingredient');return;}
+    const name=($('#mk_name').value||'').trim()||'My meal';
+    S.savedMeals=S.savedMeals||[];
+    S.savedMeals.unshift({name,items:b.items.map(it=>({...it}))});
+    if(S.savedMeals.length>40)S.savedMeals.length=40;
+    b.items.forEach(it=>addFoodEntry(meal,{...it}));
+    save();closeSheet();renderNutri();
+    toast('Saved "'+name+'" and added to today');};
+}
 
 /* ---- edit / delete an entry ---- */
 function editFood(meal,i){
