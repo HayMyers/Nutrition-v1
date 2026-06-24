@@ -224,6 +224,7 @@ hr.sep{border:none;border-top:1px solid var(--border-soft);margin:18px 0}
 .tw-tag{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:4px 9px;border-radius:999px;white-space:nowrap}
 .tw-tag.plan{background:rgba(255,176,32,.12);color:var(--cal)}
 .tw-tag.done{background:rgba(78,205,196,.13);color:var(--carbs)}
+.tw-tag.deload{background:rgba(183,148,246,.15);color:var(--fat)}
 .tw-tag.rest{background:var(--surface-2);color:var(--dim)}
 .tw-list{margin:12px 0 0;padding:0;list-style:none}
 .tw-list li{font-size:14px;color:var(--dim);padding:4px 0;display:flex;justify-content:space-between;gap:10px}
@@ -671,7 +672,8 @@ function renderHome(){
     ${ringBlock(val/tgt,color,64,7,`<span class="mval" style="color:${color}">${val}</span>`)}
     <div class="mlbl">${lbl}</div><div class="msub">/ ${tgt}g</div></div>`;
 
-  const rt=S.workout.routine||(S.workout.routine=buildRoutine(p.splitKey||recommendSplit(p.freq)));
+  if(!S.workout.routine){S.workout.routine=buildRoutine(p.splitKey||recommendSplit(p.freq));S.workout.programStart=todayISO();}
+  const rt=S.workout.routine, ph=getPhase();
   const log=S.workout.log[todayISO()];
   let twHTML;
   if(log&&log.rest){
@@ -685,7 +687,7 @@ function renderHome(){
       const ns=Array.isArray(e.sets)?e.sets.length:e.sets;
       return `<li><b>${escapeHTML(e.name)}</b><span>${ns}${e.rep?' × '+e.rep:''}</span></li>`;}).join('');
     const more=(day.ex||[]).length>5?`<li class="faint">+${day.ex.length-5} more</li>`:'';
-    twHTML=`<div class="tw-head"><h3>${escapeHTML(day.name)}</h3><span class="tw-tag ${done?'done':'plan'}">${done?'Completed':'Planned'}</span></div>
+    twHTML=`<div class="tw-head"><h3>${escapeHTML(day.name)}</h3><span class="row gap" style="gap:6px">${ph.isDeload?'<span class="tw-tag deload">Deload</span>':''}<span class="tw-tag ${done?'done':'plan'}">${done?'Completed':'Planned'}</span></span></div>
       <ul class="tw-list">${list}${more}</ul>
       <div class="btn-row">
         <button class="btn btn-primary btn-sm" id="goWork">${done?'View workout':'Start workout'}</button>
@@ -1097,6 +1099,28 @@ const DAYS={
     X('Lying Leg Curl',3,'10-15'),X('Standing Calf Raise',4,'10-15'),X('Hanging Leg Raise',3,'10-15')]},
 };
 let _uid=0;
+
+/* ---------- periodization: load/deload phases + program rotation ----------
+   Standard 3:1 load/deload ratio (3 progressively harder weeks, 1 lighter recovery week),
+   plus a nudge to switch programs after ~8 weeks (~2 months) to avoid plateauing.
+   These are well-established defaults from strength-training literature, not personalized to you —
+   tweak DELOAD_EVERY / ROTATE_AFTER below, or use "Restart load/deload cycle" / "Change split" in
+   Settings any time to reset on demand. */
+const DELOAD_EVERY=4;   // every 4th training week is a deload week
+const ROTATE_AFTER=8;   // suggest a program switch after this many weeks on the same split
+function weeksOnProgram(){
+  const start=S.workout.programStart||(S.profile&&S.profile.createdAt)||todayISO();
+  return Math.max(0,Math.floor((parseISO(todayISO())-parseISO(start))/(7*86400000)));
+}
+function getPhase(){
+  const wk=weeksOnProgram();
+  const pos=wk%DELOAD_EVERY;                 // 0,1,2 = load weeks; 3 = deload
+  const isDeload=pos===DELOAD_EVERY-1;
+  const dueRotate=wk>0 && wk%ROTATE_AFTER===0;
+  return {weekNum:wk+1,posInCycle:pos+1,cycleLen:DELOAD_EVERY,isDeload,dueRotate};
+}
+function phaseAdjustSets(n){return getPhase().isDeload?Math.max(2,Math.round(n*0.6)):n;}
+
 function buildRoutine(key){
   const sp=SPLITS[key]||SPLITS.fb3;
   return {key,label:sp.label,dayCursor:0,
@@ -1134,22 +1158,22 @@ function markRest(on){const iso=todayISO();
 
 /* ---- today's session ---- */
 function getSession(){
-  if(!S.workout.routine)S.workout.routine=buildRoutine(S.profile.splitKey||recommendSplit(S.profile.freq));
+  if(!S.workout.routine){S.workout.routine=buildRoutine(S.profile.splitKey||recommendSplit(S.profile.freq));S.workout.programStart=todayISO();}
   const iso=todayISO(); let log=S.workout.log[iso];
   if(log&&log.rest)return log;
   if(!log){
-    const rt=S.workout.routine, day=rt.days[rt.dayCursor];
-    log={dayName:day.name,fromCursor:rt.dayCursor,completed:false,
-      exercises:day.ex.map(e=>({name:e.name,rep:e.rep,sets:Array.from({length:e.sets},()=>({w:'',r:'',done:false}))})),
+    const rt=S.workout.routine, day=rt.days[rt.dayCursor], ph=getPhase();
+    log={dayName:day.name,fromCursor:rt.dayCursor,completed:false,phase:ph.isDeload?'deload':'load',
+      exercises:day.ex.map(e=>({name:e.name,rep:e.rep,sets:Array.from({length:phaseAdjustSets(e.sets)},()=>({w:'',r:'',done:false}))})),
       cardio:[]};
     S.workout.log[iso]=log; save();
   }
   return log;
 }
 function setWorkoutDay(i){
-  const rt=S.workout.routine, day=rt.days[i];
-  S.workout.log[todayISO()]={dayName:day.name,fromCursor:i,completed:false,
-    exercises:day.ex.map(e=>({name:e.name,rep:e.rep,sets:Array.from({length:e.sets},()=>({w:'',r:'',done:false}))})),cardio:[]};
+  const rt=S.workout.routine, day=rt.days[i], ph=getPhase();
+  S.workout.log[todayISO()]={dayName:day.name,fromCursor:i,completed:false,phase:ph.isDeload?'deload':'load',
+    exercises:day.ex.map(e=>({name:e.name,rep:e.rep,sets:Array.from({length:phaseAdjustSets(e.sets)},()=>({w:'',r:'',done:false}))})),cardio:[]};
   save();
 }
 
@@ -1164,6 +1188,20 @@ function renderWork(){
     $('#undoRest').onclick=()=>{markRest(false);renderWork();};
     return;
   }
+  const ph=getPhase();
+  const phaseHTML=ph.isDeload
+    ?`<div class="card" style="padding:12px 16px;border-left:3px solid var(--cal)">
+        <div class="row between"><b style="color:var(--cal)">🪶 Deload · Week ${ph.posInCycle} of ${ph.cycleLen}</b></div>
+        <p class="muted small" style="margin-top:4px">Lighter week by design — cut working weights ~30-40%, stop 2-3 reps shy of failure. Sets below are already trimmed.</p></div>`
+    :`<div class="card" style="padding:12px 16px;border-left:3px solid var(--carbs)">
+        <div class="row between"><b style="color:var(--carbs)">🔼 Load · Week ${ph.posInCycle} of ${ph.cycleLen}</b></div>
+        <p class="muted small" style="margin-top:4px">Push for one more rep, one more set, or a little more weight than last time on at least one lift.</p></div>`;
+  const rotateHTML=ph.dueRotate
+    ?`<div class="card" style="padding:12px 16px;border-left:3px solid var(--streak)">
+        <div class="row between"><b style="color:var(--streak)">🔄 ${ph.weekNum} weeks on ${rt.label}</b></div>
+        <p class="muted small" style="margin-top:4px">Same split this long tends to stall progress — good time for a refresh.</p>
+        <div class="btn-row" style="margin-top:8px"><button class="btn btn-ghost btn-sm" id="rotateNow">Change split</button></div></div>`
+    :'';
   const exHTML=log.exercises.map((e,ei)=>{
     const best=S.prs[e.name];
     const rows=e.sets.map((s,si)=>{
@@ -1185,6 +1223,7 @@ function renderWork(){
     <div class="finfo"><div class="fn">${escapeHTML(c.type)}</div><div class="fm">${c.min} min${c.dist?' · '+c.dist+' mi':''}${c.cal?' · '+c.cal+' kcal':''}</div></div>
     <button class="icon-btn delCardio">✕</button></div>`).join('');
   $('#work_wrap').innerHTML=`
+    ${phaseHTML}${rotateHTML}
     <div class="card" style="padding:14px 16px">
       <div class="row between"><div class="finfo"><div class="small muted">${rt.label}</div>
         <div class="num" style="font-weight:600;font-size:17px">${log.dayName}${log.completed?' ✓':''}</div></div>
@@ -1216,6 +1255,7 @@ function renderWork(){
   $('#pickDay').onclick=pickDayDialog;
   const fw=$('#finishW');if(fw)fw.onclick=finishWorkout;
   const rw=$('#reopenW');if(rw)rw.onclick=()=>{S.workout.log[todayISO()].completed=false;save();renderWork();};
+  const rn=$('#rotateNow');if(rn)rn.onclick=changeSplitDialog;
 }
 
 function toggleSet(ei,si){
@@ -1375,7 +1415,7 @@ function logWeightDialog(){
 
 /* ---- settings ---- */
 function renderSettings(){
-  const p=S.profile, t=p.targets;
+  const p=S.profile, t=p.targets, phNow=getPhase();
   const goalTxt={lose:'Lose weight',maintain:'Maintain',gain:'Gain weight'}[p.goal];
   $('#settings_wrap').innerHTML=`
     <div class="card"><div class="small muted" style="margin-bottom:6px">Signed in as</div>
@@ -1405,9 +1445,12 @@ function renderSettings(){
     <div class="section-title"><h3>Training program</h3></div>
     <div class="card">
       <div class="num" style="font-weight:600;font-size:16px">${SPLITS[p.splitKey].label}</div>
+      <div class="setrowline"><span>Phase</span><b style="color:${phNow.isDeload?'var(--cal)':'var(--carbs)'}">${phNow.isDeload?'Deload':'Load'} · week ${phNow.posInCycle} of ${phNow.cycleLen}</b></div>
+      <div class="setrowline"><span>Weeks on this split</span><b>${phNow.weekNum}</b></div>
       <div class="btn-row"><button class="btn btn-ghost btn-sm" id="setSplit">Change split</button>
         <button class="btn btn-ghost btn-sm" id="setResetProg">Reset to recommended</button></div>
-      <p class="note">Changing your split rebuilds your routine. Logged history &amp; PRs are kept.</p>
+      <div class="btn-row" style="margin-top:8px"><button class="btn btn-ghost btn-sm" id="setNewCycle">Restart load/deload cycle</button></div>
+      <p class="note">Every ${DELOAD_EVERY}th week auto-deloads with lighter sets; after ${ROTATE_AFTER} weeks you'll get a nudge to switch splits. Changing or resetting your split also restarts this cycle. Logged history &amp; PRs are always kept.</p>
     </div>
 
     <div class="section-title"><h3>Food search</h3></div>
@@ -1431,7 +1474,8 @@ function renderSettings(){
   $('#setEditTargets').onclick=editTargetsDialog;
   $('#setRecalc').onclick=()=>openOnboarding(S.profile);
   $('#setSplit').onclick=changeSplitDialog;
-  $('#setResetProg').onclick=()=>{const k=recommendSplit(p.freq);S.workout.routine=buildRoutine(k);S.profile.splitKey=k;save();renderSettings();toast('Program reset');};
+  $('#setResetProg').onclick=()=>{const k=recommendSplit(p.freq);S.workout.routine=buildRoutine(k);S.profile.splitKey=k;S.workout.programStart=todayISO();save();renderSettings();toast('Program reset');};
+  $('#setNewCycle').onclick=()=>{S.workout.programStart=todayISO();save();renderSettings();toast('Cycle restarted \u2014 this week is Load week 1');};
   $('#setFdcSave').onclick=()=>{setFdcKey($('#setFdcKey').value);toast('API key saved');};
   $('#setExport').onclick=exportData;
   $('#setImport').onclick=importData;
@@ -1459,7 +1503,7 @@ function changeSplitDialog(){
     ${Object.keys(SPLITS).map(k=>`<button class="btn btn-ghost" style="margin-top:8px;justify-content:space-between" data-split="${k}">
       <span>${SPLITS[k].label}</span><span class="faint">${SPLITS[k].days.length} days</span></button>`).join('')}`);
   $$('#sheet_body [data-split]').forEach(b=>b.onclick=()=>{const k=b.dataset.split;
-    S.workout.routine=buildRoutine(k); S.profile.splitKey=k; save(); closeSheet(); renderSettings(); toast('Split changed');});
+    S.workout.routine=buildRoutine(k); S.profile.splitKey=k; S.workout.programStart=todayISO(); save(); closeSheet(); renderSettings(); toast('Split changed');});
 }
 function exportData(){
   try{
