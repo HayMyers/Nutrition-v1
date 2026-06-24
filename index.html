@@ -822,15 +822,15 @@ function openAddFood(meal){
   panelRecent(meal);
 }
 
-function panelSearch(meal){
+function panelSearch(meal,onAdd){
   $('#af_panel').innerHTML=`
     <div class="field"><input class="input" id="af_q" placeholder="Search foods (e.g. greek yogurt)" autocomplete="off"></div>
     <div id="af_results"><p class="note">Powered by USDA FoodData Central — a free U.S. government nutrition database. Best for packaged, branded &amp; common foods. Can't find it? Use Manual.</p></div>`;
   const inp=$('#af_q'); if(inp)inp.focus();
   let timer;
-  inp.oninput=()=>{clearTimeout(timer);const q=inp.value.trim();if(q.length<2)return;timer=setTimeout(()=>doSearch(q,meal),450);};
+  inp.oninput=()=>{clearTimeout(timer);const q=inp.value.trim();if(q.length<2)return;timer=setTimeout(()=>doSearch(q,meal,onAdd),450);};
 }
-async function doSearch(q,meal){
+async function doSearch(q,meal,onAdd){
   const box=$('#af_results'); box.innerHTML='<p class="note">Searching…</p>';
   try{
     const params=new URLSearchParams({api_key:getFdcKey(),query:q,pageSize:'25',
@@ -851,7 +851,7 @@ async function doSearch(q,meal){
       return `<div class="result" data-i="${i}"><div class="finfo"><div class="rn">${escapeHTML(productName(p))}</div>
         <div class="rm">${br}${kc} kcal / 100g</div></div><div class="link">Add</div></div>`;
     }).join('');
-    $$('#af_results .result').forEach(el=>el.onclick=()=>portionDialog(window.__foodCache[+el.dataset.i],meal));
+    $$('#af_results .result').forEach(el=>el.onclick=()=>portionDialog(window.__foodCache[+el.dataset.i],meal,onAdd));
   }catch(e){box.innerHTML='<p class="note">Couldn\'t reach the food search service right now. You can scan the barcode or add the food manually instead.</p>';}
 }
 
@@ -888,7 +888,7 @@ function nutriPer100(p){const n=(p&&p.nutriments)||{};
   if(!cal&&n['energy-kcal_value']!=null)cal=+n['energy-kcal_value'];
   if(!cal&&n['energy_100g']!=null)cal=+n['energy_100g']/4.184;   // kJ → kcal fallback
   return{cal:cal||0,protein:+n['proteins_100g']||0,carbs:+n['carbohydrates_100g']||0,fat:+n['fat_100g']||0};}
-function portionDialog(p,meal){
+function portionDialog(p,meal,onAdd){
   const per=nutriPer100(p), pname=productName(p)||'Add food';
   openSheet(pname.slice(0,42),`
     <p class="muted small" style="margin-top:-4px">${p.brands?escapeHTML(String(p.brands).split(',')[0]):''}</p>
@@ -899,53 +899,81 @@ function portionDialog(p,meal){
       <div class="s"><div class="v num" id="pd_c" style="color:var(--carbs)">0</div><div class="l">C</div></div>
       <div class="s"><div class="v num" id="pd_f" style="color:var(--fat)">0</div><div class="l">F</div></div>
     </div>
-    <div class="field"><label>Meal</label><select class="input" id="pd_meal">${MEALS.map(m=>`<option value="${m[0]}" ${m[0]===meal?'selected':''}>${m[1]}</option>`).join('')}</select></div>
-    <button class="btn btn-primary" id="pd_add">Add food</button>`);
+    ${onAdd?'':`<div class="field"><label>Meal</label><select class="input" id="pd_meal">${MEALS.map(m=>`<option value="${m[0]}" ${m[0]===meal?'selected':''}>${m[1]}</option>`).join('')}</select></div>`}
+    <button class="btn btn-primary" id="pd_add">${onAdd?'Add ingredient':'Add food'}</button>`);
   const calc=()=>{const g=+$('#pd_g').value||0,k=g/100;
     $('#pd_cal').textContent=round(per.cal*k);$('#pd_p').textContent=round(per.protein*k,1);
     $('#pd_c').textContent=round(per.carbs*k,1);$('#pd_f').textContent=round(per.fat*k,1);};
   $('#pd_g').oninput=calc; calc();
   $('#pd_add').onclick=()=>{const g=+$('#pd_g').value||0,k=g/100;
-    addFoodEntry($('#pd_meal').value,{name:pname,base:{cal:per.cal,protein:per.protein,carbs:per.carbs,fat:per.fat},unit:'g',qty:g,
+    const food={name:pname,base:{cal:per.cal,protein:per.protein,carbs:per.carbs,fat:per.fat},unit:'g',qty:g,
       cal:round(per.cal*k),protein:round(per.protein*k,1),
-      carbs:round(per.carbs*k,1),fat:round(per.fat*k,1),qtyLabel:g+' g'});
-    closeSheet();renderNutri();toast('Added');};
+      carbs:round(per.carbs*k,1),fat:round(per.fat*k,1),qtyLabel:g+' g'};
+    if(onAdd){onAdd(food);}
+    else{addFoodEntry($('#pd_meal').value,food);closeSheet();renderNutri();toast('Added');}
+  };
 }
 
 /* ---- barcode scanning ---- */
-function panelScan(meal){
+function panelScan(meal,onAdd){
   $('#af_panel').innerHTML=`
     <div id="reader"></div>
     <p class="note" id="scanNote">Point the camera at a barcode. Camera works on the hosted (https) site.</p>
     <div class="field" style="margin-top:8px"><label>Or enter a barcode number</label>
       <div class="two"><input class="input num" id="bc_num" inputmode="numeric" placeholder="e.g. 737628064502">
       <button class="btn btn-ghost" id="bc_go" style="width:auto">Look up</button></div></div>`;
-  $('#bc_go').onclick=()=>{const c=$('#bc_num').value.trim();if(c)lookupBarcode(c,meal);};
-  startScanner(meal);
+  $('#bc_go').onclick=()=>{const c=$('#bc_num').value.trim();if(c)lookupBarcode(c,meal,onAdd);};
+  startScanner(meal,onAdd);
 }
 function ensureScannerLib(){return new Promise((res,rej)=>{
   if(window.Html5Qrcode)return res();
   const s=document.createElement('script');s.src='https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
   s.onload=()=>res();s.onerror=()=>rej(new Error('load'));document.head.appendChild(s);});}
-async function startScanner(meal){
+async function startScanner(meal,onAdd){
   try{await ensureScannerLib();}catch(e){const n=$('#scanNote');if(n)n.textContent='Scanner needs internet to load. Type the barcode number instead.';return;}
   try{
     scanner=new Html5Qrcode('reader',{formatsToSupport:[
       Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,
       Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E,Html5QrcodeSupportedFormats.CODE_128]});
     await scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:250,height:160}},
-      text=>{if(navigator.vibrate)navigator.vibrate(60);stopScanner();lookupBarcode(text,meal);},()=>{});
+      text=>{if(navigator.vibrate)navigator.vibrate(60);stopScanner();lookupBarcode(text,meal,onAdd);},()=>{});
   }catch(e){const n=$('#scanNote');if(n)n.textContent='Camera unavailable here — allow camera access on the hosted site, or type the barcode.';}
 }
 function stopScanner(){if(scanner){try{scanner.stop().then(()=>{try{scanner.clear();}catch(e){}scanner=null;}).catch(()=>{scanner=null;});}catch(e){scanner=null;}}}
-async function lookupBarcode(code,meal){
+async function lookupBarcode(code,meal,onAdd){
   const n=$('#scanNote'); if(n)n.textContent='Looking up '+code+'…';
   try{
     const r=await fetch(`${OFF}/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,nutriments`);
     const d=await r.json();
-    if(d.status===1&&d.product&&d.product.nutriments){portionDialog(d.product,meal);}
+    if(d.status===1&&d.product&&d.product.nutriments){portionDialog(d.product,meal,onAdd);}
     else{toast('Product not found');if(n)n.textContent='Not in the database. Add it manually instead.';}
   }catch(e){toast('Lookup failed (offline?)');}
+}
+
+/* ---- search / scan launched from inside the meal builder (adds as an ingredient instead of logging to today) ---- */
+function mealAddSearch(meal){
+  openSheet('Search database',`
+    <button class="btn btn-ghost" id="mb_back" style="margin-bottom:12px">‹ Back to meal</button>
+    <div class="field"><input class="input" id="af_q" placeholder="Search foods (e.g. greek yogurt)" autocomplete="off"></div>
+    <div id="af_results"><p class="note">Powered by USDA FoodData Central — a free U.S. government nutrition database.</p></div>`);
+  $('#mb_back').onclick=()=>renderMealBuilder(meal);
+  const inp=$('#af_q'); if(inp)inp.focus();
+  let timer;
+  const onAdd=(food)=>{_mealBuild.items.push(food);renderMealBuilder(meal);};
+  inp.oninput=()=>{clearTimeout(timer);const q=inp.value.trim();if(q.length<2)return;timer=setTimeout(()=>doSearch(q,meal,onAdd),450);};
+}
+function mealAddScan(meal){
+  openSheet('Scan barcode',`
+    <button class="btn btn-ghost" id="mb_back" style="margin-bottom:12px">‹ Back to meal</button>
+    <div id="reader"></div>
+    <p class="note" id="scanNote">Point the camera at a barcode. Camera works on the hosted (https) site.</p>
+    <div class="field" style="margin-top:8px"><label>Or enter a barcode number</label>
+      <div class="two"><input class="input num" id="bc_num" inputmode="numeric" placeholder="e.g. 737628064502">
+      <button class="btn btn-ghost" id="bc_go" style="width:auto">Look up</button></div></div>`);
+  const onAdd=(food)=>{_mealBuild.items.push(food);renderMealBuilder(meal);};
+  $('#mb_back').onclick=()=>{stopScanner();renderMealBuilder(meal);};
+  $('#bc_go').onclick=()=>{const c=$('#bc_num').value.trim();if(c)lookupBarcode(c,meal,onAdd);};
+  startScanner(meal,onAdd);
 }
 
 /* ---- manual entry (servings multiplier + saved foods) ---- */
@@ -1093,6 +1121,10 @@ function renderMealBuilder(meal){
       <div id="mk_pick" style="margin-bottom:14px">${saved.map((f,i)=>`<div class="savedfood" data-pick="${i}">
         <span class="sf-name">${escapeHTML(f.name)}</span><span class="sf-cal num">${round(f.cal)} kcal</span></div>`).join('')}</div>
       <hr class="sep" style="margin:0 0 14px">`:''}
+    <div class="btn-row" style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="btn btn-ghost" id="mk_dbsearch" style="flex:1">🔍 Search database</button>
+      <button class="btn btn-ghost" id="mk_scan" style="flex:1">📷 Scan barcode</button>
+    </div>
     <div class="small muted" style="margin:2px 2px 7px">Or add a quick ingredient</div>
     <div class="field"><input class="input" id="mk_iname" placeholder="Ingredient name"></div>
     <div class="three">
@@ -1116,6 +1148,8 @@ function renderMealBuilder(meal){
     const cal=+$('#mk_ical').value||0,protein=+$('#mk_ip').value||0,carbs=+$('#mk_ic').value||0,fat=+$('#mk_if').value||0;
     b.items.push({name,base:{cal,protein,carbs,fat},unit:'serving',qty:1,cal,protein,carbs,fat,qtyLabel:'1 serving'});
     renderMealBuilder(meal);};
+  $('#mk_dbsearch').onclick=()=>mealAddSearch(meal);
+  $('#mk_scan').onclick=()=>mealAddScan(meal);
   $('#mk_save').onclick=()=>{
     if(!b.items.length){toast('Add at least one ingredient');return;}
     const name=($('#mk_name').value||'').trim()||'My meal';
